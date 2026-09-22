@@ -1,7 +1,14 @@
 # Analysis recipes
 
 Scripts in `firmware-re/scripts/` and `firmware-re/ghidra/`.
-Current resume: [`docs/HANDOFF.md`](../../docs/HANDOFF.md).
+**Current work:** understand stock 1.1.6.579 — see
+[`docs/HANDOFF.md`](../../docs/HANDOFF.md) and
+[`docs/two-agent-protocol.md`](../../docs/two-agent-protocol.md).
+Cursor dumps go in `firmware-re/notes/scans/`. Claude prose in
+`firmware-re/notes/model/`. Do not both edit the catalog.
+[`docs/ARTURIA-FIRMWARE-RE-GUIDE.md`](../../docs/ARTURIA-FIRMWARE-RE-GUIDE.md).
+Do not `build_patch.py` / live-flash Euclidean or chord images in this
+phase.
 
 Always analyze **`keystep37_1.1.6.579_flash.bin`** (base `0x08000000`).
 Create it with:
@@ -25,7 +32,7 @@ analyzeHeadless <project> <name> \
 If a decompile shows `unaff_r*` or exception-vector names, the entry is
 wrong — walk branches from a real `push {…,lr}` and recreate the function.
 
-`.led` checksums (both u16s):
+`.led` checksums (both u16s) — infrastructure, not current feature work:
 
 ```
 python3 firmware-re/scripts/led_codec.py inspect "<file.led>"
@@ -33,33 +40,34 @@ python3 firmware-re/scripts/led_codec.py mutate-test "<file.led>"
 python3 firmware-re/scripts/led_codec.py retarget <patched.bin> <out.bin>
 ```
 
-Bounded unicorn:
+Bounded unicorn (`all` leftover FLAG FAIL is a warning until BSS-init;
+`euclid` leftover FAIL is fatal):
 
 ```
 python3 firmware-re/scripts/emulate_ks37.py all
 python3 firmware-re/scripts/emulate_ks37.py play
-python3 firmware-re/scripts/emulate_ks37.py euclid
 ```
 
-Rebuild a feature image:
+Scanners (flash extract) — **this phase**:
 
 ```
-python3 firmware-re/scripts/build_patch.py e0   # or e1|e3|c1|c2
+python3 firmware-re/scripts/scan_firmware.py stores-214
+python3 firmware-re/scripts/scan_firmware.py tbb
+python3 firmware-re/scripts/scan_firmware.py ptr-runs
+python3 firmware-re/scripts/scan_firmware.py bl-to 0x08011794
+python3 firmware-re/scripts/scan_firmware.py cmp-imm
 ```
 
-Device / hardware bootloader / listen:
+Device / hardware (restore stock only unless Jim says otherwise):
 
 ```
 ./scripts/keystep-see.sh
-# Jim: unplug, Rec+Stop+Play, plug USB (Hold/Shift alternate).
+# dump: unplug, Rec+Stop+Play, plug USB (Hold/Shift alternate).
 # AutoAttach off; 0291 stays on Windows. Then from WSL:
 ./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
   /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ./scripts/wait_wsl_reattach.sh
 ./scripts/keystep-see.sh
-python3 firmware-re/scripts/listen_ks37.py e0 --seconds 25
-# then e1, e3-off, e3-on, c1 --scale major, c2
-# e3 Shift+1/2 is stock MIDI CH — do not treat that as the latch.
 ```
 
 Do not send app-mode `productKey` from WSL. MCC stock is recovery
@@ -69,11 +77,6 @@ Do not send app-mode `productKey` from WSL. MCC stock is recovery
 ./scripts/flash-win.sh --dry-run /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
-Scanners (flash extract):
-
-```
-python3 firmware-re/scripts/scan_firmware.py stores-214
-python3 firmware-re/scripts/scan_firmware.py tbb
-python3 firmware-re/scripts/scan_firmware.py ptr-runs
-python3 firmware-re/scripts/scan_firmware.py bl-to 0x08011794
-```
+**Future** (refused unless `KS37_FEATURE_FLASH=YES-FEATURE-FLASH`):
+`build_patch.py e0|e1|e3|c1|c2`, `listen_ks37.py e0|e1|e3-off|c1|c2`,
+feature-level `cycle.sh` / `--live`.

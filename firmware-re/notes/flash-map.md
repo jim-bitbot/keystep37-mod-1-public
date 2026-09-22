@@ -37,7 +37,9 @@ offset 64 → **`0x08004000`**. Pages are 1 KiB (offset += 4).
 
 ## Holes a future patch may use
 
-- **Preferred:** `0x0801F400`–`0x0802FBFF` (66 KiB of `0xFF` from
+**Not current work.**
+
+- **Preferred later:** `0x0801F400`–`0x0802FBFF` (66 KiB of `0xFF` from
   fill records). After a patch, `led_codec.py retarget` must rebuild
   program + per-segment checksums. Replacing a fill header with a real
   1 KiB data record is the clean way to place new Thumb there.

@@ -1,0 +1,7 @@
+MCC Test Panel console — 2026-09-22.
+Handshake (Identity + GET 0x01–0x6E) then Test-20 arm, then Shift+keys 1–37.
+Source: Jim paste from MCC MIDI console.
+
+See firmware-re/notes/stock-shift-map.md. MCC names MIDI 36 as C1; this project uses C2.
+Every Shift+key: B0 56 01 (CC 86 shift) + Note On/Off on ch 3 (current User CH).
+No per-function CC for MIDI CH / Gate / Swing / Mono / Overdub / Scale.

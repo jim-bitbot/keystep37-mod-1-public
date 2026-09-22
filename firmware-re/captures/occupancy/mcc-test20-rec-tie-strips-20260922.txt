@@ -1,0 +1,21 @@
+MCC Test Panel — 2026-09-22 Rec+keys / tie / legato / Shift+strips.
+
+Rec held + keys 1–16 (length / step rec):
+  CC 87 then notes 36–51 (C2–D#3 = keys 1–16)
+  then Rec + key for 37,38,39,40,42,41,45
+
+Tie (Rec on, hold key, Tap):
+  note 45 + CC 103 + aftertouch + note-off
+  then 48+103, 50+103, 45+103, 43+103, 41+103, 45+103
+
+Legato (hold Tap, play keys):
+  CC 103 then note 47 (long aftertouch)
+  CC 87 + 103 then notes
+  Tap-before-note clusters (45, 43, 48+52+55, 50, 47+50+53)
+
+Hold + keys (CC 85) mixed at the end — not a new combo.
+
+Shift + Pitch: CC 86 + CC 65
+Shift + Mod:   CC 86 + CC 64 (Shift again mid-sweep)
+
+Channel aftertouch (D2) is Test-20 while keys are held, not a panel button.

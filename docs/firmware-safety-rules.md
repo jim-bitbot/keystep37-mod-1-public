@@ -36,12 +36,16 @@ import checksum or vector-table assumptions from the original KeyStep.
      action.
 
 7. Validate in stages. Do not skip ahead.
-   - Stage 1: stock firmware only
-   - Stage 2: harmless cosmetic patch
-   - Stage 3: real feature work
+   - Stage 1: stock firmware only — **done**
+   - Stage 2: harmless cosmetic patch — **done** (MCC Flash C/D)
+   - Stage 3: real feature work — **paused**. Current work is
+     understanding 1.1.6. Do not flash Euclidean / chord images until
+     the machine model exists.
 
 8. Prefer reversible changes.
-   - Do not patch a hot path until the exact edit location is verified.
+   - Do not patch a hot path until the exact edit location is verified
+     against a **current-state** model of 1.1.6, not a mid-file findings
+     paragraph.
    - If a change is not fully understood, do not flash it.
 
 9. Treat the hardware as recoverable but not disposable.

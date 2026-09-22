@@ -4,8 +4,117 @@ Read this first in a new session. Addresses:
 [../firmware-re/notes/address-catalog.md](../firmware-re/notes/address-catalog.md).
 Image packaging: [../firmware-re/notes/led-header.md](../firmware-re/notes/led-header.md).
 MCU / holes: [../firmware-re/notes/flash-map.md](../firmware-re/notes/flash-map.md).
-Narrative log: [../firmware-re/notes/findings-2026-09-20.md](../firmware-re/notes/findings-2026-09-20.md).
-General method (not KeyStep-specific): [ARTURIA-FIRMWARE-RE-GUIDE.md](ARTURIA-FIRMWARE-RE-GUIDE.md).
+Panel occupancy: [../firmware-re/notes/stock-shift-map.md](../firmware-re/notes/stock-shift-map.md).
+Narrative log: [../firmware-re/notes/findings-2026-09-20.md](../firmware-re/notes/findings-2026-09-20.md)
+(chronological; do not take mid-file “not yet” as current).
+General method: [ARTURIA-FIRMWARE-RE-GUIDE.md](ARTURIA-FIRMWARE-RE-GUIDE.md).
+Repo overview: [../README.md](../README.md).
+**Two agents, same repo:** [two-agent-protocol.md](two-agent-protocol.md)
+(Cursor writes `notes/scans/`; Claude writes `notes/model/`; catalog is
+Cursor-only).
+
+## Resume here — 2026-09-22 — understand stock 1.1.6.579
+
+**Current goal:** a machine model of application 1.1.6.579, not a new
+feature. Euclidean restripe, latch, and scale-chord (e0b…c2) are
+**future work** — packaged, partially hear-tested, frozen. Do not rebuild
+them. Do not live-flash them. Do not occupancy-listen again.
+
+**Flash without MCC is closed.** Rec+Stop+Play, leave `0291` on Windows,
+`./scripts/flash-win.sh` (parser is this repo’s `led_codec.py`). MCC is
+recovery only. Do not attach `0291` to WSL. Do not resurrect
+`flash_bl_wsl.sh`. Do not reverse the bootloader. Optional later: on-device
+read-back vs the `.led` — not required to study the extract.
+
+Analyze
+`firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin`
+(base `0x08000000`). App Thumb `0x08004000`–`0x0801F400`. ~40 named
+functions in `ghidra/recreate.py` are **islands**, not a map.
+
+Build the model in this order (wire constant → `cmp` imm → correct
+function boundary → callers). Occupancy CCs **are** firmware control IDs
+(§10 of `stock-shift-map.md`).
+
+1. **Boot and ownership** — `Reset_Handler` `.data`/`.bss`, ctor sweep
+   (~`0x08014d08`). Objects, vtables, RAM bases. No “free SRAM” until
+   `.bss` is catalogued (`0x20005F00` leftover is why e3b default-off
+   was fake).
+2. **Main loop and IRQs** — who calls analog process, debounce, tick, USB
+   parse. Test-20 is object `+0xb9`, not “how MIDI works.”
+3. **Three input buses** — keys (`0x0801b750`), buttons (compact IDs +
+   Shift RAM `0x200010d2`), analog (`0x08004918` / strip `0x08004388`).
+   Walk each ID to its **stock handler**. Occupancy named the panel;
+   firmware still has not named most Shift secondaries (18 Shift-RAM
+   loads).
+4. **Time** — `arp_seq_tick` until clock, Time Div, swing, and current
+   step are one diagram.
+5. **Voice out** — step cell → pitch/vel/tie → Note-On/Off → USB/DIN.
+   Pitch-gate at `0x08013ebc` is the emission check; `seq_step_gate` bit 7
+   is retention. Write this as architecture, not as a hook target.
+6. **Protocol overlay** — GET/SET `globalParamId` on top of (3)–(5).
+
+Deliverable of this phase: catalog rows with P/S/H/X, growing
+`recreate.py` **only** for confirmed names, a current-state map — not a
+`.led`. `findings-2026-09-20.md` stays a log.
+
+Do not steal Shift+keys 1–16. Chart holes that looked free and are not:
+Shift+Tap (tempo), Chord-then-Rec (Rec LED). Shift+Mod strip is the
+surviving latch **candidate for later**, not a patch to write now.
+
+Older “Resume here” sections below are history.
+
+**Start work:** both agents Wave 1 in [two-agent-protocol.md](two-agent-protocol.md)
+§5. Cursor: `firmware-re/notes/scans/A-boot.txt`. Claude:
+`firmware-re/notes/model/prep-islands.md`. Do not both edit the catalog.
+
+## Resume here — 2026-09-22 — cycle harness + occupancy map
+
+**Superseded the same day** by “understand stock 1.1.6.579”. Occupancy
+**did** complete (MCC Test-20 pastes + eyes-on): map is
+`stock-shift-map.md`. Shift+Tap and Chord-then-Rec are **occupied**, not
+holes. `emulate_ks37.py euclid` leftover-FLAG FAIL is intended until a **future** BSS-init. Default `./scripts/cycle.sh` / `emulate_ks37.py all` treat leftover as a warning so the permitted cycle can succeed.
+
+Inner loop was Unicorn. Outer loop was Rec+Stop+Play. **No live flash
+in that occupancy work.** Do **not** paste a feature `--live` cycle.
+`cycle.sh` refuses feature levels and `--live` unless
+`KS37_FEATURE_FLASH=YES-FEATURE-FLASH`.
+
+Allowed this phase:
+
+```
+./scripts/cycle.sh
+```
+
+Historical (FUTURE — not a command to run; `cycle.sh` exits 3):
+`cycle.sh` with a feature level (`e0b` … `c2`) and/or `--live`.
+
+`emulate_ks37.py all` plants leftover `0xFF` at `FLAG_RAM`
+`0x20005F00` (e3b miss: unused SRAM, not BSS-zeroed). The leftover
+check FAILs until a future patch BSS-inits the flag; `all` prints
+FAIL as a warning and still exits 0. `emulate_ks37.py euclid` keeps
+that FAIL fatal. Cycle **aborts** on any other unicorn FAIL — no
+MIDI, no flash. Do not resurrect `flash_bl_wsl.sh`. Do not
+attach `0291` to WSL. `--live` waits for `0291`, stops AutoAttach,
+`diag_unlock.py` then `flash-win.sh --already-unlocked`, waits
+`0219`/`1c76:0219`, starts AutoAttach, prints “Hold F, Hold on”,
+`listen_ks37.py`. Default is no `--live`.
+
+Occupancy (all buttons including 3-at-once) lives in
+[`firmware-re/notes/stock-shift-map.md`](../firmware-re/notes/stock-shift-map.md),
+checked against KS37 1.1 EN and the original KeyStep 1.1.0.28 Shift FAQ.
+**Shift + Oct− + Oct+** while Seq is stopped is **clear all notes, keep
+length** (missing from the KS37 chart; **confirmed live** 2026-09-22).
+Same chord in Arp limits multi-octave range to held notes (§5.5). Live
+column is filled (MCC Test-20 + eyes-on). Historical occupancy command
+(do not re-run as current work):
+
+```
+./scripts/occupancy-listen.sh --test20
+```
+
+That arms MCC Test-20 each step so Shift/Oct/Rec/combos dump raw CCs.
+Log: `firmware-re/captures/occupancy/`. **Done 2026-09-22** (Jim pasted
+MCC Test-20; eyes-on stock for holes). Do not re-run as current work.
 
 ## Resume here — 2026-09-22 — flash-win.sh live PASS (e3b, same image)
 
@@ -374,7 +483,8 @@ Two updater LED patterns (both work; not factory reset):
 Factory reset is Oct−+Oct+ until the display shows `rST`. Do not confuse
 it with either updater. Do **not** send app-mode `productKey` from WSL.
 
-**Do this next, in order:**
+**Do this next, in order:** *(historical 2026-09-21/22 feature ladder —
+**superseded.** Current work is understand 1.1.6, no feature flash.)*
 
 1. Open the Windows dump lab (PC_1). Rec+Stop+Play, device stays on
    Windows, first live send is KeystepFlash stock, then E0. Unplug after
@@ -410,10 +520,9 @@ LEDs are fine. Never `usbipd detach` a wedged updater — unplug.
   (`flash_win.py`). Do not retry WSL chunk send. Recovery is MCC stock
   `firmware-re/recovery/keystep37_1.1.6.579_stock.led`.
 
-Feature Thumb is written and packaged. Flash A/C/D succeeded. WSL
-chunk transfer on `0291` is **blocked** (usbipd/ALSA stall). Dump lab is
-PC_1; this repo’s next live step is listen after a Windows stock then E0
-dump.
+Feature Thumb is written and packaged **as future work**. Flash A/C/D
+succeeded. WSL chunk transfer on `0291` is **blocked**. Dump lab is
+`flash-win.sh`; do not retry WSL ALSA. Do not run the E0→C2 ladder now.
 
 Work on the **stripped flash extract**
 (`firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin`, base
@@ -425,19 +534,19 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 
 | Area | State |
 |---|---|
-| USB/MIDI protocol, GET, bootloader `.led` transfer, front-panel CCs | Done (live-verified) |
+| Current phase | **Understand 1.1.6.579.** No new patches, no live feature flash |
+| USB/MIDI protocol, GET, bootloader `.led` transfer, front-panel CCs | Done (live-verified). Occupancy CCs = control IDs |
 | `.led` encode/decode + checksums | Done. Huaxin segments; program u16 + per-footer u16. `led_codec.py retarget` |
-| MCU / unused space | STM32F1 + GPIOE + TIM8 + USB; ≥256KB (F103VC). 66 KiB FF-fill at `0x0801F400` |
-| Pattern-mode generator | **Named (builder + player).** Mode byte `engine+0x10 == 6` (CC21=7). TBH `0x08011a38` case 6 → `0x08011cca` → `0x0801196c`. Case 7 shares Order's builder. Play-time `0x08013e8c`. Not a vtable at `+0x214` |
+| Flash without MCC | **Closed.** Rec+Stop+Play + `flash-win.sh`. MCC = recovery. ALSA dump refused |
+| MCU / unused space | STM32F1 + GPIOE + TIM8 + USB; ≥256KB (F103VC). 66 KiB FF-fill at `0x0801F400` (**future** Thumb) |
+| Pattern-mode generator | **Named (island).** Mode byte `engine+0x10 == 6` (CC21=7). TBH `0x08011a38` case 6. Play-time `0x08013e8c`. Pitch-gate `0x08013ebc` is emission; `seq_step_gate` bit 7 is retention |
+| Machine model (boot, objects, loop, IRQs, three buses, time, voice) | **Not done.** Catalog + `recreate.py` are islands |
 | Mode activation | **`set_arp_mode` `0x08011794`**. Knob path `0x08016a26` reads settings `+0x55` |
-| Chord interval | Unicorn: interval = `*(int8*)(voice+0x4f)` on `0x200051cc`; transpose = `0x200000C8`. Type/Notes enter `0x0800f054` |
-| Checksum algorithm | **Known.** Do not flash without `retarget` |
-| Device see (Gate 0) | `./scripts/keystep-see.sh` — PASS after night stock restore |
-| Live MIDI score | `firmware-re/scripts/listen_ks37.py` / `scripts/listen-ks37.sh`. Arp needs physical keys. |
-| Stock recovery image | `firmware-re/recovery/keystep37_1.1.6.579_stock.led` (read-only, bit-identical vendor copy) |
-| WSL sender | **Live via `flash-win.sh`.** ALSA `ks37_flash.py` blocked. Parser is `led_codec.py`. |
-| First modified image | unused page `0x0801F400` byte0 `FF→FE` — MCC Flash C accepted it; D restored stock |
-| Euclidean / chord images | `e0_euclid_3in8.led` … `c2_shift_type.led` (`build_patch.py`). Unicorn `emulate_ks37.py euclid` PASS |
+| Chord interval | Unicorn: interval = `*(int8*)(voice+0x4f)` on `0x200051cc`; transpose = `0x200000C8` |
+| Panel occupancy | **Done enough.** `stock-shift-map.md`. Shift+keys 1–16 = MIDI CH. Shift+Mod = later latch candidate |
+| Euclidean / chord images | **Future.** Packaged; e0b live 3-in-8; e3b latch wrong. Do not extend |
+| Stock recovery image | `firmware-re/recovery/keystep37_1.1.6.579_stock.led` |
+| WSL sender | **Live via `flash-win.sh`.** ALSA `ks37_flash.py` blocked |
 
 ## Protocol (do not redo)
 
@@ -448,15 +557,19 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 - Arp ignores injected MIDI notes; physical keys only
 - Mode knob is 8-detent. A future feature cannot be a 9th printed position
 
-## Feature page (Euclidean then scale-chord)
+## Feature page (Euclidean then scale-chord) — **FUTURE**
+
+Do not rebuild or flash these in the understand-1.1.6 phase. Facts below
+are frozen from the 2026-09 experiment so a later session does not
+re-derive them.
 
 One implanted page at `0x0801F400` (`firmware-re/patches/ks37_patch.S`).
-Rebuild: `python3 firmware-re/scripts/build_patch.py e0|e1|e3|c1|c2`.
-Send: Rec+Stop+Play then `./scripts/flash-win.sh --already-bootloader --confirm YES-FLASH` (KeystepFlash `.led`). Do not use `flash_bl_wsl.sh`. Abort = MCC + recovery `.led`.
+Rebuild (later): `python3 firmware-re/scripts/build_patch.py e0|e1|e3|c1|c2`.
 
-**Keep pitches; rewrite gates only.** `euclid_gate(step, length, hits)` is
-`(step % n) * k % n < k`. Seq and Pattern share `play_time_step` /
-`seq_step_gate` — E2 is a no-op (one hook covers both).
+**Keep pitches; rewrite gates only** was the experiment. Real emission
+gate is pitch-gate at `0x08013ebc`, not `seq_step_gate` bit 7. E1/E3
+images that hook `seq_step_gate` are dead. E3b latch on Shift+C2/C♯2 is
+stock MIDI CH — wrong gesture.
 
 | Level | Image | Behaviour |
 |---|---|---|
@@ -467,7 +580,7 @@ Send: Rec+Stop+Play then `./scripts/flash-win.sh --already-bootloader --confirm 
 | E3 | `e3_euclid_shift.led` | **Dead hook.** Do not flash. |
 | E3b | `e3b_pitchgate_shift.led` | Pitch-gate latch. **Wrong gesture** (Shift+C2/C♯2 = MIDI CH). Euclidean-on works; off unproven. Do not treat as done. |
 | C1 | `c1_scale_chord.led` | Chord ON (`voice+0x4d`) + scale mask ≠ `0x0FFF` → snap after `noteval`. Chromatic = stock. Hooks at `0x0801baac`, `0x0801b9f2`, `0x0801bb24` |
-| C2 | `c2_shift_type.led` | Shift+Type is free. Stores knob to `0x20005F01`; flavour > 64 skips snap. Type writes `0x0800f4b8` / `0x0800f54e` / `0x0800f6fc` |
+| C2 | `c2_shift_type.led` | Shift+Type is **not** a free hole (Test-20 CC 86+98; Type still enters Chord). Piggyback flavour only. **Do not use for a latch** |
 
 Stock listen (**live**, 2026-09-20): extras do **not** snap. Static
 agrees (`0x0801ba9c` emits `r4` directly). C1 snaps after `noteval`.
@@ -494,7 +607,7 @@ python3 firmware-re/scripts/led_codec.py encode framed_out.bin out.led
 |---|---|---|---|
 | Gate 0 | — | `keystep-see.sh` | PASS after night stock restore (`1c75:0219`, Identity 1.1.6) |
 | A | vendor stock | MCC on Windows | **Done.** |
-| B | same stock | Rec+Stop+Play + PC_1 `flash_win.py` | **Next (Windows dump lab).** WSL chunk send blocked. Hardware entry works. |
+| B | same stock | Rec+Stop+Play + `flash-win.sh` | **Done** (2026-09-22). ALSA WSL send blocked; do not reopen |
 | C | `noop_1f400.led` (`0x0801F400[0]=FE`) | MCC | **Done.** `0219` → `0291` → `0219`. Packaging accepted. |
 | D | vendor stock | MCC | **Done.** Restored 1.1.6. Capture: `firmware-re/captures/mcc_cd_2026-09-20.pcap` |
 | E0 | `e0_euclid_3in8.led` | Rec+Stop+Play + PC_1 winmm | **Wire OK (`F0 77 F7`), did not boot.** Stolen page-0 footers on hook pages. Encoder fixed; images rebuilt. Redo after MCC stock. |
@@ -550,6 +663,8 @@ program sum. `mutate-test` proves this on both stock images.
 - `firmware-re/scripts/listen_ks37.py` + `scripts/listen-ks37.sh`
 - `firmware-re/captures/listen/stock-chord-20260920-230828.txt`
 - `firmware-re/scripts/ks37_flash.py` (`--already-bootloader`) — **blocked** (ALSA stall)
+- `scripts/cycle.sh` — unicorn `emulate all` then `flash-win.sh --dry-run`. Feature level / `--live` refused unless `KS37_FEATURE_FLASH=YES-FEATURE-FLASH`
+- `scripts/occupancy-listen.sh` — prompted `amidi -d` pass → `firmware-re/captures/occupancy/`
 - `scripts/flash-win.sh` — WSL → `py.exe` `flash_win.py` (default dry-run; parser is `led_codec.py`)
 - `scripts/flash_bl_wsl.sh` / `scripts/attach_bootloader.sh` — **blocked**; dump is `flash-win.sh`
 - `scripts/flash_euclid_mcc.sh` (MCC recovery on Windows)

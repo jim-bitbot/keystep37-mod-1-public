@@ -40,7 +40,8 @@ reflect discovery status, not permission to skip them.
 ## Patch validation
 
 - [x] No write occurs below the application boundary.
-      E0–C2 only touch `0x0801F400` plus the named `bl` sites in app code.
+      E0–C2 (frozen experiments) only touch `0x0801F400` plus named `bl`
+      sites. **Do not flash them in the understand-1.1.6 phase.**
 - [x] No USB/MIDI stack code is altered.
       GET / `productKey` / Huaxin path untouched. Do not steal Shift+keys
       1–16 (stock Keyboard MIDI CH).
@@ -48,9 +49,8 @@ reflect discovery status, not permission to skip them.
       One 1 KiB page at `0x0801F400` (`ks37_patch.S`). Last page `0x0802FC00` left to `retarget`.
 - [x] The change is small enough to reason about and validate.
       Flash C (MCC) wrote one unused byte at `0x0801F400`; D restored stock.
-      Feature images unicorn-tested (`emulate_ks37.py euclid`). First E0
-      MCC try stuck on `0291` and was stock-recovered. Live send is
-      `./scripts/flash-win.sh` (e3b pipe test 2026-09-22 PASS).
+      Feature images unicorn-tested. Live send is `./scripts/flash-win.sh`
+      (infrastructure). Current work does **not** add images.
 
 ## Flash attempt
 
@@ -65,12 +65,15 @@ reflect discovery status, not permission to skip them.
 ## After flash
 
 Per-attempt boxes. Flash C/D already proved enumeration + stock restore.
-WSL `--already-bootloader` via `flash-win.sh` (e3b 2026-09-22) proved
-enumeration after dump. E0 MIDI proof is live; e3 latch-off is not.
+WSL `--already-bootloader` via `flash-win.sh` (2026-09-22) proved the
+sender.
 
 - [ ] Device boots and enumerates as `1c75:0219` (or `1c76:0219` VID quirk).
 - [ ] MIDI/USB update path still functions.
-- [ ] The custom behavior matches expectation (`listen_ks37.py e0` → IOI 3,3,2).
+- [ ] **N/A this phase** — custom behavior hear-test
+      (`listen_ks37.py e0` → IOI 3,3,2). Returns when feature work
+      resumes (firmware-safety-rules.md rule 7 stage 3). Do not skip it
+      then: flash is not done until behavior is confirmed.
 - [x] A stock recovery flash is immediately available
       (`firmware-re/recovery/keystep37_1.1.6.579_stock.led`).
 
@@ -85,7 +88,7 @@ enumeration after dump. E0 MIDI proof is live; e3 latch-off is not.
 
 ## Default rule
 
-Packaging, flash map, and unused-page isolation are confirmed. Unchecked
-items above are **per attempt** (device stable, no disconnect) and
-**after flash** (Windows winmm send + hear-test). If a preflight or binary-prep
-item becomes uncertain again, do not flash.
+Packaging, flash map, unused-page isolation, and **flash-without-MCC**
+are confirmed. Current project work is **understanding 1.1.6**, not
+flashing features. Unchecked items above are per attempt. If a preflight
+or binary-prep item becomes uncertain again, do not flash.

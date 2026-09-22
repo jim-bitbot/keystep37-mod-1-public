@@ -1,0 +1,19 @@
+MCC Test Panel — 2026-09-22 combo tail (after GET + Test-20 + knobs).
+
+Prefix matches prior knob paste. New after Strum (CC 101) down to 08:
+
+  CC 87 rec
+  CC 86 + 17 octp + 16 octm     ← Shift + both Oct (likely Seq)
+  CC 18 = 0                     ← Seq/Arp switch
+  CC 86 + 16 + 17 + 17 + 16     ← Shift + both Oct again (likely Arp)
+  CC 87 ×3                      ← Rec taps; no notes (not Rec+keys)
+  CC 105 chord + notes ch3:
+      45/48/41 (A2/C3/F2), then 49/53, then 43 (+aftertouch),
+      then 57/48/47, then 49
+  CC 105
+  CC 87                         ← Chord then Rec (chart hole)
+  CC 89 ×3                      ← Stop ×3
+  CC 105 + CC 87 ×2 + CC 90     ← Chord, Rec, Rec+Play
+
+Not in this paste: Oct−+Oct+ without Shift; Rec+keys with notes;
+Rec+Tap rest/tie/legato; Shift+Oct++keys 1–16; pitch/mod.
