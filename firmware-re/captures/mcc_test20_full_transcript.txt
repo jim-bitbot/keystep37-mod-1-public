@@ -1,0 +1,25 @@
+Full MIDI Control Center Test Panel console transcript, captured 2026-09-20.
+Shared directly by the user (typed/copied from MCC's console, not a pcap).
+Confirms and extends the findings in firmware-re/notes/findings-2026-09-20.md.
+
+Sequence: standard connection handshake (Identity Request/Reply, full
+globalParamId read loop 0x01-0x6E) -> Test 20 armed (02 7D 7D 09 7F +
+02 00 70 00 7F) -> raw CC telemetry begins:
+
+- B0 69 01 x4        Chord button (CC 105), held/repeated
+- B0 12 01/00 x2     Seq/Arp toggle switch (CC 18), both positions
+- B0 55 01           Hold button (CC 85)
+- B0 15 03..07       Mode knob (CC 21), swept through several positions
+- B0 66 0x27..0x3F   Rate knob (CC 102), swept through a range
+- B0 68 0x02..0x06   Div knob (CC 104), swept through a range
+
+No new CC mappings beyond what was already confirmed via screenshots
+(18, 21, 85, 102, 104, 105). Value for this transcript: independent
+confirmation of the exact arming sequence and ordering, and confirms CC 21
+(Mode knob) is genuinely multi-valued across a small integer range (3-7
+seen here), consistent with the 8 arp modes.
+
+Still needed: which specific named arp mode (Up/Down/Inclusive/Exclusive/
+Random/Walk/Pattern/Order) corresponds to which CC 21 numeric value - this
+transcript doesn't establish that mapping since the knob was swept quickly
+without per-position labeling.

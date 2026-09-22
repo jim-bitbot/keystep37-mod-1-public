@@ -1,0 +1,39 @@
+# Local Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Editor / agent local
+.claude/settings.local.json
+.DS_Store
+*.swp
+.idea/
+
+# Arturia vendor firmware — never commit (keep local copies for flash/recovery)
+og_firmware/
+firmware-re/recovery/
+*.led
+
+# Decoded / stripped / rebuilt flash images (derived from vendor firmware)
+firmware-re/firmware-images/
+*.bin
+
+# USB captures — firmware-update pcaps contain the image on the wire
+*.pcap
+*.pcapng
+
+# Arturia redistributables (re-download from Arturia)
+arturia_manual/*.pdf
+midi_control_centre_analysis/*.exe
+midi_control_centre_analysis/*.zip
+
+# Third-party source tree kept as local reference only
+other repo/
+
+# Ghidra project databases (scripts stay tracked)
+firmware-re/ghidra/*.gpr
+firmware-re/ghidra/*.rep/
+firmware-re/ghidra/*.lock
