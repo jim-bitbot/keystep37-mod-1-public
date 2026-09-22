@@ -7,6 +7,10 @@ other Arturia products (or similar STM32-based MIDI gear) using the same
 `.led` update format, not just this one device. Where a fact is
 KeyStep-37-specific, it's marked as an example, not a universal constant.
 
+**This repo's current use of the method** is understanding KeyStep 37
+**1.1.6.579** as a machine model (see `docs/HANDOFF.md`). Feature
+patching is future work; flash-without-MCC is already closed.
+
 This document describes **method only** — it does not include Arturia's
 firmware, binaries, or copyrighted manual content. Everything here is
 about how to derive facts yourself from a device you own, for

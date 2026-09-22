@@ -1,5 +1,10 @@
 # Address catalog — KeyStep 37 firmware 1.1.6.579
 
+**Current work (2026-09-22):** grow this catalog into a machine model
+(boot, objects, RAM, loop/IRQs, three input buses, time, voice). Feature
+patches (Euclidean / chord) are **future**. See
+[`docs/HANDOFF.md`](../../docs/HANDOFF.md).
+
 **Use the stripped flash extract**, not the framed `.led` decode:
 
 `firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin`
@@ -19,7 +24,13 @@ disassembly / unicorn, H = hypothesis, X = ruled out.
 | `0x08005e84` | `0x08001f68` | get_param | GET `globalParamId` | P |
 | `0x08005df8` | `0x08001edc` | chord_test_dispatch | Control `0x69` (CC 105) ON/OFF | P |
 | `0x08005ccc` | | mode_byte_get | `ldrb [r0,#0x55]` — live Mode value used as `r1` for `set_arp_mode` | S |
-| `0x08016bc4` | `0x08013482` | cc_notify | Builds `0xB0` CC messages | P |
+| `0x08006024` | | id_to_index | Control ID → compact 0–7 (hold/shift/octm/octp/tap/rec/stop/play); else 8. Occupancy CCs **are** these IDs | P |
+| `0x0800606c` | | index_to_id | Compact → ID (TBB). Button debounce uses this before Test-20 emit | S |
+| `0x080060a2` | | knob_index_to_cc | Knob compact → CC `0x62`–`0x66` (98–102 Type/Notes/Vel/Strum/Rate) | P |
+| `0x080067f4` | | test20_cc_press | Builds `B0 <id> 01`. Called from debounce `0x0801a7f6` after `index_to_id` | P |
+| `0x080068c8` | | test20_cc_value | Builds `B0 <id> <val>`. Analog Test-20 path `0x08004974` | P |
+| `0x08006914` | | test20_cc_value2 | Same `B0` shape; Shift+Mode emits id `0x15`, Shift+TimeDiv id `0x68` when AutoTest `+0xb9` | P |
+| `0x08016bc4` | `0x08013482` | cc_notify | Catalog name; real `push` is `0x08016bd4`. Test-20 occupancy CCs come from `0x080067f4` / `0x080068c8` | S |
 | `0x0801cc5c` | `0x08019808` | subscribe | 3-slot × 20-byte callback table at `0x20001120` | S |
 
 ## Arp / mode (Pattern)
@@ -228,7 +239,13 @@ that touches sequence timing, not just Pattern specifically.
 | `0x08010310` | Parsed MIDI path still distinguishes USB/DIN before channel filtering |
 | `0x0801b750` | Common note processing; `r2=0` from physical key scanner, `r2=1` from either MIDI port |
 | `0x20001ebc` | Cross-port/channel pitch tracker. Releasing a pitch from one "owner" (port/channel) can clear its slot while another owner still holds the same pitch. |
-| `0x08004930` | Raw control boundary, precedes page/routing logic (buttons/knobs, not note input) |
+| `0x08004918` | Analog/knob process. Store new raw at `+0x5a` (`0x08004930`). AutoTest `obj+0xb9` → emit CC via `0x080060a2`+`0x080068c8`. `+0x58==0` = strip; `1..4` = Type/Notes/Vel/Strum |
+| `0x08004930` | Raw control boundary (inside `0x08004918`), precedes page/routing. Other-repo `ks37_control_hook` patches this STRB |
+| `0x08004bf8` | Shift-held branch of the `+0x58==0` strip: pickup/scale math, not a named panel function |
+| `0x08004388` | Other strip processor. If `*(0x200010d2)` (Shift) ≠ 0, skips MIDI emit (`bne 0x08004428`) and returns — matches Shift+Mod eyes-on no-op |
+| `0x0801a7ac` | Button debounce wrapper. Stable → `index_to_id` then `test20_cc_press` |
+| `0x08017260` | Panel button dispatch. Reads Shift RAM; unshifted TBH `0x08017282`, shifted TBH `0x08017868` (hold/rec/stop/play/chord). Shift/oct/tap in this table are the common exit |
+| `0x200010d2` | Shift-held byte. 18 load sites (Mode/TimeDiv skip-apply, strip, note emit, button TBH) |
 | `0x0800d26e` / `0x0800d1f8` | Key LED writer / refresh — DMA reads a live source; no established frame-atomicity guarantee |
 
 ## Step-counter object fields, confirmed by our own disassembly — 2026-09-22

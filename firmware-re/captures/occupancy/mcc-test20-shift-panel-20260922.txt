@@ -1,0 +1,14 @@
+MCC Test Panel — 2026-09-22 panel buttons (after GET handshake + Test-20 arm).
+
+Order (each pair is Shift then the other):
+
+  CC 86 shift + CC 85 hold
+  CC 86 + CC 16 octm
+  CC 86 + CC 17 octp
+  CC 86 + CC 103 tap     ← chart hole; both CCs still fire
+  CC 86 + CC 87 rec
+  CC 86 + CC 89 stop
+  CC 86 + CC 90 play
+  CC 86 + CC 105 chord
+
+Not in this paste: Shift+Mode (21), Shift+Time Div (104), Shift+Rate (102), combos.

@@ -77,13 +77,19 @@ Stop AutoAttach, leave the updater on Windows, then from WSL:
 
 ```
 ./scripts/flash-win.sh --dry-run
-# live, after Rec+Stop+Play, AutoAttach off, Windows already has 0291:
+# live restore stock only, after Rec+Stop+Play, AutoAttach off:
 ./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
-  /mnt/c/Users/jimcu/KeystepFlash/<file>.led
+  /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
 `flash_bl_wsl.sh` refuses. MCC is recovery only. Detach to Windows first
 if using MCC — never `usbipd detach` a live `0291` (unplug instead).
+
+**Current work is static analysis of 1.1.6**, not occupancy or feature
+flash. Occupancy map is done:
+[`firmware-re/notes/stock-shift-map.md`](../firmware-re/notes/stock-shift-map.md).
+`./scripts/cycle.sh` remains unicorn + dry-run (aborts on leftover FLAG
+FAIL until a **future** BSS-init). Do not `--live` feature images.
 
 Watch app-mode restore from WSL after a dump (physical unplug/replug,
 then AutoAttach if you want listen):
@@ -91,7 +97,6 @@ then AutoAttach if you want listen):
 ```
 ./scripts/wait_wsl_reattach.sh
 ./scripts/keystep-see.sh
-python3 firmware-re/scripts/listen_ks37.py e0 --seconds 25
 ```
 
 **From WSL, verify with one command:**
@@ -134,7 +139,9 @@ MIDI Identity (`00 20 6B` / `00 06 01 01`), and one GET. Bootloader:
 | MCC updater | `productKey` — Hold/Shift/Oct clockwise |
 | ALSA card (app) | `A37` — "Arturia KeyStep 37" |
 | MIDI port | `hw:0,0,0` (any `hw:` in updater) |
-| Live flash | `./scripts/flash-win.sh` (Windows winmm; default dry-run) |
+| Cycle | `./scripts/cycle.sh` (unicorn then dry-run; **no `--live`** this phase) |
+| Occupancy | **Done.** `firmware-re/notes/stock-shift-map.md` |
+| Live flash | `./scripts/flash-win.sh` (infrastructure; default dry-run). Feature images = **future** |
 | Recovery `.led` | `firmware-re/recovery/keystep37_1.1.6.579_stock.led` |
 | Descriptor dump | `firmware-re/descriptors/lsusb_verbose_dump.txt` |
 | Sample MIDI capture | `captures/keystep_midi_test_20260920.txt` |

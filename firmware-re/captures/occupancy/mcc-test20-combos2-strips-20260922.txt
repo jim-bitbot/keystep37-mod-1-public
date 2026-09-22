@@ -1,0 +1,14 @@
+MCC Test Panel — 2026-09-22 remaining combos + strips (In: only).
+
+  CC 17 + 16                    Oct−+Oct+ NO Shift
+  CC 86 + 85 + 17 + notes ch3   Shift (+Hold) + Oct+ + keys:
+      36 C2, 38 D2, 40 E2, 43 G2, 41 F2, 45 A2, 39 D#2, 37 C#2
+      then 36/38/40, 39, 38, 40, 38+40 together
+  CC 85 + 86 + note 38          Shift+Hold+key 3 (no Oct+)
+  CC 18 = 1                     Seq/Arp switch
+  CC 87 + 85 + 103 (repeat)     Rec + Tap rest; Hold extra; no notes
+  CC 65 pitch 0→0x6E→0→0x6E     Pitch strip (no Shift)
+  CC 64 mod  0x09→0x7F→0        Mod strip (no Shift)
+
+Not in this paste: Rec+keys with notes; Rec+Tap tie/legato (needs keys);
+Shift+Mod; Shift+pitch.

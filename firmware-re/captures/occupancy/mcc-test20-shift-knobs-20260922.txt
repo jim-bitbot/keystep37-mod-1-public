@@ -1,0 +1,22 @@
+MCC Test Panel — 2026-09-22 knobs (after GET + Test-20 arm).
+
+Ignore GET / 1C 00 handshake.
+
+Buttons (same as prior paste, then knobs):
+
+  CC 86+85 hold, 86+16 octm, 86+17 octp, 86+103 tap,
+  86+87 rec, 86+89 stop, 86+90 play, 86+105 chord
+
+Knobs:
+
+  Mode (unshifted first): CC 21 = 2,3,4,5,6 then back 5,4,3
+  Shift + Mode:            CC 86 + CC 21 = 4,3,2
+  Shift + Time Div:        CC 86 + CC 104 = 2..6 then back, then 3,4
+  Rate (mostly unshifted): CC 102 = 0 .. 0x6C (108) full sweep twice;
+                           one CC 86 mid-sweep, one CC 86 near the end
+  Shift then Type:         CC 86 + CC 98  0 .. ~0x0E  (MCC: NRPN LSB)
+  Shift then Notes:        CC 86 + CC 99  0 .. ~0x10  (MCC: NRPN MSB)
+  Shift then Vel>Notes:    CC 86 + CC 100 0 .. ~0x0B  (MCC: RPN LSB)
+  Shift then Strum:        CC 86 + CC 101 0 .. ~0x08  (MCC: RPN MSB; paste cut off)
+
+Not in this paste: Seq/Arp switch (18), pitch/mod (65/64), combos.
