@@ -88,8 +88,9 @@ if using MCC — never `usbipd detach` a live `0291` (unplug instead).
 **Current work is static analysis of 1.1.6**, not occupancy or feature
 flash. Occupancy map is done:
 [`firmware-re/notes/stock-shift-map.md`](../firmware-re/notes/stock-shift-map.md).
-`./scripts/cycle.sh` remains unicorn + dry-run (aborts on leftover FLAG
-FAIL until a **future** BSS-init). Do not `--live` feature images.
+`./scripts/cycle.sh` remains unicorn + dry-run. Leftover FLAG FAIL is
+non-fatal for `emulate all` (fatal for `emulate_ks37.py euclid` until a
+**future** BSS-init). Do not `--live` feature images.
 
 Watch app-mode restore from WSL after a dump (physical unplug/replug,
 then AutoAttach if you want listen):

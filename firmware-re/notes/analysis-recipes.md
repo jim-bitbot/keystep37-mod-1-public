@@ -40,7 +40,8 @@ python3 firmware-re/scripts/led_codec.py mutate-test "<file.led>"
 python3 firmware-re/scripts/led_codec.py retarget <patched.bin> <out.bin>
 ```
 
-Bounded unicorn (future feature tests; leftover FLAG FAIL is intended):
+Bounded unicorn (`all` leftover FLAG FAIL is a warning until BSS-init;
+`euclid` leftover FAIL is fatal):
 
 ```
 python3 firmware-re/scripts/emulate_ks37.py all

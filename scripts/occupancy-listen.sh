@@ -95,7 +95,7 @@ cleanup() {
         disarm_test20
     fi
     if [[ -n "${AMIDI_PID:-}" ]]; then
-        kill "$AMIDI_PID" 2>/dev/null || sudo kill "$AMIDI_PID" 2>/dev/null || true
+        kill "$AMIDI_PID" 2>/dev/null || sudo -n kill "$AMIDI_PID" 2>/dev/null || true
         wait "$AMIDI_PID" 2>/dev/null || true
     fi
 }

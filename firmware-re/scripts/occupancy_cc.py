@@ -40,6 +40,9 @@ HEX = re.compile(r"\b([0-9A-Fa-f]{2})\b")
 
 
 def hex_bytes(line: str) -> list[int]:
+    s = line.strip()
+    if s.startswith("#"):
+        return []
     if ")" in line:
         line = line.split(")", 1)[1]
     return [int(x, 16) for x in HEX.findall(line)]
@@ -68,7 +71,7 @@ def parse_events(lines: list[str]) -> list[str]:
             out.append(f"note-off {bs[1]} vel={bs[2]} ch{(st & 0x0F) + 1}")
         elif st == 0xF0:
             out.append("sysex " + " ".join(f"{b:02X}" for b in bs[:12]))
-        elif st == 0xC0 and len(bs) >= 2:
+        elif st & 0xF0 == 0xC0 and len(bs) >= 2:
             out.append(f"program-change {bs[1]} ch{(st & 0x0F) + 1}")
     return out
 

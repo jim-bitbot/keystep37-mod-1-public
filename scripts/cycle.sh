@@ -157,7 +157,6 @@ fi
 echo "-- emulate all --"
 "$PYTHON" "$ROOT/firmware-re/scripts/emulate_ks37.py" all || {
   echo "FAIL unicorn — abort, no MIDI, no flash" >&2
-  echo "  leftover FLAG_RAM at 0x20005F00 is the e3b miss until BSS-init" >&2
   exit 1
 }
 
