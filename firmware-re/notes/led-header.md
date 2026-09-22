@@ -94,10 +94,11 @@ Feature Thumb is already built this way (`build_patch.py` → page
 3. If editing the flash extract, cut 1 KiB pages back into the framed
    segments (offset 64 + 4n) and run `retarget`.
 4. Encode uppercase hex-ASCII → `.led`.
-5. Enter updater with Rec+Stop+Play (Hold/Shift alternate). Live send is
-   `ks37_flash.py --already-bootloader` / `flash_bl_wsl.sh`. The wire
-   format is bootloader `productKey` then raw hex-ASCII chunks. Do not
-   send app-mode `productKey` from WSL. Abort / recover with MCC +
+5. Enter updater with Rec+Stop+Play (Hold/Shift alternate). Leave `0291`
+   on Windows. Live send is `./scripts/flash-win.sh` → Windows
+   `flash_win.py`, which imports this `led_codec.py`. Do not use
+   `ks37_flash.py` / `flash_bl_wsl.sh`. Do not send app-mode `productKey`
+   from WSL. Abort / recover with MCC + local
    `firmware-re/recovery/keystep37_1.1.6.579_stock.led` (clockwise LEDs).
 
 12-byte data footers carry a BE24 flash offset at bytes `[1:4]`

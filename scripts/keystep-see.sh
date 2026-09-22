@@ -11,6 +11,7 @@ set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VID_APP="1c75:0219"
+VID_APP_QUIRK="1c76:0219"
 VID_BL="1c75:0291"
 IDENTITY="F0 7E 7F 06 01 F7"
 GET_CH="F0 00 20 6B 7F 42 01 00 41 01 F7"
@@ -31,22 +32,23 @@ echo "== USB =="
 if lsusb -d "$VID_APP" >/dev/null 2>&1; then
     lsusb -d "$VID_APP"
     MODE="app"
+elif lsusb -d "$VID_APP_QUIRK" >/dev/null 2>&1; then
+    lsusb -d "$VID_APP_QUIRK"
+    MODE="app"
+    echo "(VID quirk $VID_APP_QUIRK — same app PID 0219)"
 elif lsusb -d "$VID_BL" >/dev/null 2>&1; then
     lsusb -d "$VID_BL"
     MODE="bootloader"
     echo "Updater PID $VID_BL is attached. Do not send app-mode productKey."
     echo "Hardware entry: Rec+Stop+Play (Hold/Shift alternate)."
-    echo "Send: ./scripts/flash_bl_wsl.sh <file.led>  or recover with MCC stock."
+    echo "Send: ./scripts/flash-win.sh <file.led>  (Windows winmm; 0291 stays on Windows)."
+    echo "Do not attach 0291 to WSL. Recover with MCC stock if needed."
 else
-    echo "NOT FOUND ($VID_APP or $VID_BL)."
-    echo "On Windows (elevated PowerShell), bind BOTH personalities by PID:"
+    echo "NOT FOUND ($VID_APP or $VID_BL). Also try 1c76:0219 (VID quirk)."
+    echo "Listen: AutoAttach on, attach app PID to WSL."
+    echo "Dump: Stop AutoAttach, leave 0291 on Windows, ./scripts/flash-win.sh"
     echo "  usbipd list"
-    echo "  usbipd bind --busid <BUSID_0219>"
-    echo "  usbipd attach --wsl --busid <BUSID_0219> --auto-attach"
-    echo "After Rec+Stop+Play the device re-enumerates as $VID_BL"
-    echo "(name may be Updater / MiniLab / UNKNOWN):"
-    echo "  usbipd bind --busid <BUSID_0291>   # when it appears"
-    echo "  usbipd attach --wsl --busid <BUSID_0291> --auto-attach"
+    echo "  usbipd attach --wsl --busid <BUSID_0219>   # listen only, not 0291"
     FAIL=1
 fi
 
@@ -127,8 +129,9 @@ if [ "$FAIL" -eq 0 ] && [ "$MODE" = "app" ]; then
     echo "Gate 0 PASS (app $VID_APP, port $PORT)."
 elif [ "$MODE" = "bootloader" ]; then
     if [ -n "${PORT:-}" ]; then
-        echo "0291 ready for --already-bootloader (port $PORT)."
-        echo "  ./scripts/flash_bl_wsl.sh firmware-re/recovery/keystep37_1.1.6.579_stock.led"
+        echo "0291 is on this WSL attach — dump from Windows instead."
+        echo "  Stop AutoAttach, leave 0291 Shared, then:"
+        echo "  ./scripts/flash-win.sh --already-bootloader --confirm YES-FLASH <file.led>"
     else
         echo "Updater $VID_BL visible but no hw: rawmidi yet. Wait for snd-usb-audio, or:"
         echo "  ./scripts/attach_bootloader.sh"

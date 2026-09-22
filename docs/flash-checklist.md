@@ -20,8 +20,9 @@ reflect discovery status, not permission to skip them.
 - [x] Recovery path to stock firmware is tested: MCC stock 1.1.6.579
       (Flash A and Flash D, 2026-09-20). Flash C (noop via MCC) also
       returned to `1c75:0219`. WSL/winmm app-mode `productKey` does not
-      enter the updater. Enter with Rec+Stop+Play, then
-      `ks37_flash.py --already-bootloader`. MCC stock is recovery.
+      enter the updater. Enter with Rec+Stop+Play, leave `0291` on
+      Windows (AutoAttach off), then `./scripts/flash-win.sh`. MCC stock
+      is recovery. Never attach `0291` to WSL for a dump.
 
 ## Binary preparation
 
@@ -41,14 +42,15 @@ reflect discovery status, not permission to skip them.
 - [x] No write occurs below the application boundary.
       E0–C2 only touch `0x0801F400` plus the named `bl` sites in app code.
 - [x] No USB/MIDI stack code is altered.
-      GET / `productKey` / Huaxin path untouched. MIDI CH stays MCC.
+      GET / `productKey` / Huaxin path untouched. Do not steal Shift+keys
+      1–16 (stock Keyboard MIDI CH).
 - [x] New code is isolated in a specific unused region.
       One 1 KiB page at `0x0801F400` (`ks37_patch.S`). Last page `0x0802FC00` left to `retarget`.
 - [x] The change is small enough to reason about and validate.
       Flash C (MCC) wrote one unused byte at `0x0801F400`; D restored stock.
       Feature images unicorn-tested (`emulate_ks37.py euclid`). First E0
-      MCC try stuck on `0291` and was stock-recovered. Next proof is WSL
-      `--already-bootloader` (stock, then `listen_ks37.py e0`).
+      MCC try stuck on `0291` and was stock-recovered. Live send is
+      `./scripts/flash-win.sh` (e3b pipe test 2026-09-22 PASS).
 
 ## Flash attempt
 
@@ -63,9 +65,10 @@ reflect discovery status, not permission to skip them.
 ## After flash
 
 Per-attempt boxes. Flash C/D already proved enumeration + stock restore.
-WSL `--already-bootloader` and E0 MIDI proof are still open.
+WSL `--already-bootloader` via `flash-win.sh` (e3b 2026-09-22) proved
+enumeration after dump. E0 MIDI proof is live; e3 latch-off is not.
 
-- [ ] Device boots and enumerates as `1c75:0219`.
+- [ ] Device boots and enumerates as `1c75:0219` (or `1c76:0219` VID quirk).
 - [ ] MIDI/USB update path still functions.
 - [ ] The custom behavior matches expectation (`listen_ks37.py e0` → IOI 3,3,2).
 - [x] A stock recovery flash is immediately available
@@ -74,7 +77,8 @@ WSL `--already-bootloader` and E0 MIDI proof are still open.
 ## Recovery action
 
 1. MCC-reflash the original stock `.led` (or Rec+Stop+Play +
-   `flash_bl_wsl.sh` stock). Do not send app-mode `productKey` from WSL.
+   `./scripts/flash-win.sh` stock in KeystepFlash). Do not send app-mode
+   `productKey` from WSL. Do not use `flash_bl_wsl.sh`.
 2. Confirm the firmware update path still works (`1c75:0219`, Identity 1.1.6).
 3. Re-examine the patch region and header/packaging logic.
 4. Resume only after the root cause is understood.
@@ -83,5 +87,5 @@ WSL `--already-bootloader` and E0 MIDI proof are still open.
 
 Packaging, flash map, and unused-page isolation are confirmed. Unchecked
 items above are **per attempt** (device stable, no disconnect) and
-**after flash** (WSL send + E0 hear-test). If a preflight or binary-prep
+**after flash** (Windows winmm send + hear-test). If a preflight or binary-prep
 item becomes uncertain again, do not flash.

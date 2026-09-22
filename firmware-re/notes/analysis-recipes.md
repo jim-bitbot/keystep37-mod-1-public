@@ -52,21 +52,21 @@ Device / hardware bootloader / listen:
 ```
 ./scripts/keystep-see.sh
 # Jim: unplug, Rec+Stop+Play, plug USB (Hold/Shift alternate).
-./scripts/attach_bootloader.sh
-./scripts/flash_bl_wsl.sh firmware-re/recovery/keystep37_1.1.6.579_stock.led
+# AutoAttach off; 0291 stays on Windows. Then from WSL:
+./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
+  /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ./scripts/wait_wsl_reattach.sh
 ./scripts/keystep-see.sh
-# then the same with e0_euclid_3in8.led
 python3 firmware-re/scripts/listen_ks37.py e0 --seconds 25
 # then e1, e3-off, e3-on, c1 --scale major, c2
+# e3 Shift+1/2 is stock MIDI CH — do not treat that as the latch.
 ```
 
 Do not send app-mode `productKey` from WSL. MCC stock is recovery
 (clockwise Hold/Shift/Oct chase). Packaging check:
 
 ```
-python3 firmware-re/scripts/ks37_flash.py --dry-run \
-  firmware-re/recovery/keystep37_1.1.6.579_stock.led
+./scripts/flash-win.sh --dry-run /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
 Scanners (flash extract):

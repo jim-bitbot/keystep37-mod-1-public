@@ -7,6 +7,29 @@ MCU / holes: [../firmware-re/notes/flash-map.md](../firmware-re/notes/flash-map.
 Narrative log: [../firmware-re/notes/findings-2026-09-20.md](../firmware-re/notes/findings-2026-09-20.md).
 General method (not KeyStep-specific): [ARTURIA-FIRMWARE-RE-GUIDE.md](ARTURIA-FIRMWARE-RE-GUIDE.md).
 
+## Resume here — 2026-09-22 — flash-win.sh live PASS (e3b, same image)
+
+WSL `./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH` dumped `e3b_pitchgate_shift.led` via Windows `py.exe` / `flash_win.py` / this repo’s `led_codec.py`. Unlock `F0 51 F7`, 176 segments, `1A`×175, **`F0 77 F7`**, 71.8 s, `longerror=0`. Re-enum **`1c76:0219`** Shared (VID quirk). AutoAttach was stopped. ALSA `flash_bl_wsl.sh` stays refused. Next live dump is the same wrapper; MCC still recovery.
+
+## Resume here — 2026-09-22 — flash from WSL via Windows py.exe
+
+Claude rewired PC_1 `flash_win.py` to import WSL `led_codec.py`
+(`\\wsl$\Ubuntu\home\jimcu\dev\KeyStep37_Mod_1\firmware-re\scripts`).
+`led_records.py` is gone. Dry-run segment counts match the old parser
+(stock 176 / 110 data / 66 fill).
+
+From this repo, no ALSA send. Parser + rebuild stay here; WinMM stays
+Windows:
+
+```
+./scripts/flash-win.sh
+./scripts/flash-win.sh /mnt/c/Users/jimcu/KeystepFlash/e0b_pitchgate_3in8.led
+```
+
+Default is `--dry-run`. Live still needs Rec+Stop+Play, AutoAttach off,
+device on Windows, then `--already-bootloader --confirm YES-FLASH`.
+`flash_bl_wsl.sh` now refuses.
+
 ## Resume here — 2026-09-22 — Shift+C/D is stock MIDI CH; e3b latch is wrong
 
 Jim is right. Manual 1.1 §3.6.1 / §3.6.6: **Shift + keys 1–16 =
@@ -412,7 +435,7 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 | Device see (Gate 0) | `./scripts/keystep-see.sh` — PASS after night stock restore |
 | Live MIDI score | `firmware-re/scripts/listen_ks37.py` / `scripts/listen-ks37.sh`. Arp needs physical keys. |
 | Stock recovery image | `firmware-re/recovery/keystep37_1.1.6.579_stock.led` (read-only, bit-identical vendor copy) |
-| WSL sender | **Blocked.** Unlock `F0 51 F7` works; `.led` stream stalls. Do not retry. Dump: PC_1 `flash_win.py`. |
+| WSL sender | **Live via `flash-win.sh`.** ALSA `ks37_flash.py` blocked. Parser is `led_codec.py`. |
 | First modified image | unused page `0x0801F400` byte0 `FF→FE` — MCC Flash C accepted it; D restored stock |
 | Euclidean / chord images | `e0_euclid_3in8.led` … `c2_shift_type.led` (`build_patch.py`). Unicorn `emulate_ks37.py euclid` PASS |
 
@@ -429,8 +452,7 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 
 One implanted page at `0x0801F400` (`firmware-re/patches/ks37_patch.S`).
 Rebuild: `python3 firmware-re/scripts/build_patch.py e0|e1|e3|c1|c2`.
-Send: Rec+Stop+Play then Windows PC_1 `flash_win.py` (KeystepFlash
-`.led`). Do not use `flash_bl_wsl.sh`. Abort = MCC + recovery `.led`.
+Send: Rec+Stop+Play then `./scripts/flash-win.sh --already-bootloader --confirm YES-FLASH` (KeystepFlash `.led`). Do not use `flash_bl_wsl.sh`. Abort = MCC + recovery `.led`.
 
 **Keep pitches; rewrite gates only.** `euclid_gate(step, length, hits)` is
 `(step % n) * k % n < k`. Seq and Pattern share `play_time_step` /
@@ -528,6 +550,7 @@ program sum. `mutate-test` proves this on both stock images.
 - `firmware-re/scripts/listen_ks37.py` + `scripts/listen-ks37.sh`
 - `firmware-re/captures/listen/stock-chord-20260920-230828.txt`
 - `firmware-re/scripts/ks37_flash.py` (`--already-bootloader`) — **blocked** (ALSA stall)
-- `scripts/flash_bl_wsl.sh` / `scripts/attach_bootloader.sh` — **blocked**; dump is PC_1
+- `scripts/flash-win.sh` — WSL → `py.exe` `flash_win.py` (default dry-run; parser is `led_codec.py`)
+- `scripts/flash_bl_wsl.sh` / `scripts/attach_bootloader.sh` — **blocked**; dump is `flash-win.sh`
 - `scripts/flash_euclid_mcc.sh` (MCC recovery on Windows)
 - `firmware-re/captures/keystep37_firmware_update.pcap` (and pcba / testpanel)

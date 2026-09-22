@@ -23,11 +23,10 @@ External tools in `~/tools/`:
 ## USB/MIDI passthrough — auto-attach configured on the Windows side
 
 WSL2 has no direct USB access — the KeyStep 37 has to be attached from the
-Windows host. **This is now configured to happen automatically**: `usbipd`
-auto-attach was set up on the Windows side and reattaches the device on
-reboot/replug without manual intervention. If it's ever *not* showing up,
-fall back to the manual steps below rather than assuming something is
-permanently broken.
+Windows host. **App-mode listen** uses AutoAttach. **A firmware dump
+does the opposite:** stop `KeystepAutoAttach-USBIP` and leave `0291` on
+Windows — do not `usbipd attach --wsl` the updater. If the KeyStep is
+ever *not* showing up for listen, fall back to the manual steps below.
 
 **Manual fallback, in an elevated (Administrator) PowerShell on Windows:**
 ```powershell
@@ -35,8 +34,9 @@ usbipd list
 usbipd attach --wsl --busid <BUSID>
 ```
 (`<BUSID>` is whatever `usbipd list` shows next to `1c75:0219` or
-`1c75:0291`, not necessarily the string "Arturia KeyStep 37".
-Run `bind` first instead of `attach` only if state isn't already "Shared".)
+`1c76:0219` for app, or `1c75:0291` for updater.
+Run `bind` first instead of `attach` only if state isn't already "Shared".
+Do **not** attach `0291` to WSL when dumping — that is the ALSA stall.)
 
 To restore auto-attach if it stops working:
 ```powershell
@@ -46,24 +46,20 @@ left running (originally wrapped in a Windows Scheduled Task at logon so it
 starts automatically — check Task Scheduler on Windows if auto-attach isn't
 working and this needs re-creating).
 
-**Bind both USB personalities.** After Rec+Stop+Play (or MCC `productKey`)
-the KeyStep leaves `1c75:0219` and re-enumerates as updater `1c75:0291`.
-Windows name may be KeyStep Updater, MiniLab, or UNKNOWN — match **PID**,
-not the product string. An auto-attach that only knows the app PID will
-drop the firmware transfer. In elevated PowerShell, when each PID appears:
+**Bind the app personality for listen.** After Rec+Stop+Play the KeyStep
+leaves `1c75:0219` (sometimes `1c76:0219`) and re-enumerates as updater
+`1c75:0291`. Match **PID**, not the product string. AutoAttach that only
+knows `1c75:0219` will miss the `1c76` VID quirk.
+
+For **listen**, attach app mode to WSL. For a **dump**, bind is fine but
+do **not** attach `0291` to WSL:
 
 ```powershell
 usbipd list
 usbipd bind --busid <BUSID_0219>
 usbipd attach --wsl --busid <BUSID_0219> --auto-attach
-# after Rec+Stop+Play / during an update:
-usbipd bind --busid <BUSID_0291>
-usbipd attach --wsl --busid <BUSID_0291> --auto-attach
+# dump: Stop-ScheduledTask KeystepAutoAttach-USBIP; leave 0291 Shared
 ```
-
-(`<BUSID>` is whatever `usbipd list` shows next to `1c75:0219` or
-`1c75:0291`. Run `bind` first instead of `attach` only if state isn't
-already "Shared".)
 
 ## Updater entry (two LED patterns)
 
@@ -76,23 +72,26 @@ until the display shows `rST`).
 | MCC software-update | Hold, Shift, Oct+, Oct− clockwise | MCC `productKey` |
 
 Do **not** send app-mode `productKey` from WSL — it does not enter the
-updater. After Rec+Stop+Play, attach `0291` and send with
-`./scripts/flash_bl_wsl.sh <file.led>`.
-
-Watch restore / reattach from WSL:
+updater. Do **not** attach `0291` to WSL for a dump (ALSA stream stalls).
+Stop AutoAttach, leave the updater on Windows, then from WSL:
 
 ```
-./scripts/attach_bootloader.sh
-./scripts/flash_bl_wsl.sh firmware-re/recovery/keystep37_1.1.6.579_stock.led
+./scripts/flash-win.sh --dry-run
+# live, after Rec+Stop+Play, AutoAttach off, Windows already has 0291:
+./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
+  /mnt/c/Users/jimcu/KeystepFlash/<file>.led
+```
+
+`flash_bl_wsl.sh` refuses. MCC is recovery only. Detach to Windows first
+if using MCC — never `usbipd detach` a live `0291` (unplug instead).
+
+Watch app-mode restore from WSL after a dump (physical unplug/replug,
+then AutoAttach if you want listen):
+
+```
 ./scripts/wait_wsl_reattach.sh
 ./scripts/keystep-see.sh
 python3 firmware-re/scripts/listen_ks37.py e0 --seconds 25
-```
-
-MCC is recovery only. Detach to Windows first if using MCC:
-
-```powershell
-usbipd detach --busid <BUSID>
 ```
 
 **From WSL, verify with one command:**
@@ -135,7 +134,7 @@ MIDI Identity (`00 20 6B` / `00 06 01 01`), and one GET. Bootloader:
 | MCC updater | `productKey` — Hold/Shift/Oct clockwise |
 | ALSA card (app) | `A37` — "Arturia KeyStep 37" |
 | MIDI port | `hw:0,0,0` (any `hw:` in updater) |
-| Live flash | `./scripts/flash_bl_wsl.sh <file.led>` |
+| Live flash | `./scripts/flash-win.sh` (Windows winmm; default dry-run) |
 | Recovery `.led` | `firmware-re/recovery/keystep37_1.1.6.579_stock.led` |
 | Descriptor dump | `firmware-re/descriptors/lsusb_verbose_dump.txt` |
 | Sample MIDI capture | `captures/keystep_midi_test_20260920.txt` |

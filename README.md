@@ -18,25 +18,29 @@ This is not a fresh rewrite and not a 9th Mode-knob detent (the knob is
 Pitches stay; gates are rewritten. Seq and Pattern share `play_time_step`
 / `seq_step_gate`, so one hook covers both.
 
-## Status (2026-09-21)
+## Status (2026-09-22)
 
-Device is **stock 1.1.6** again. Feature images E0–C2 are packaged.
-Unicorn `emulate_ks37.py euclid` PASS. Flash A/C/D succeeded. First E0
-MCC attempt stuck on `1c75:0291`; MCC stock recovered it. **E0 has not
-been heard from MIDI yet.**
+Device is **e3b** (re-dumped the same image as a sender test). e0b hear-test
+PASS 3-in-8; e1b k=n OK-ish; e3b Euclidean-on works, latch-off unproven
+(Shift+C/C♯ is stock MIDI CH — see `firmware-re/notes/stock-shift-map.md`).
 
 Enter the updater with **Rec+Stop+Play** on plug (Hold/Shift alternate).
-Do not send app-mode `productKey` from WSL. WSL `--already-bootloader`
-unlock works; the usbipd/ALSA `.led` stream **stalls** — do not retry
-`flash_bl_wsl.sh`. Dump lab is Windows
-`C:\Users\jimcu\Documents\my apps\Keystep_Mod_PC_1` (`flash_win.py`,
-images in `C:\Users\jimcu\KeystepFlash\`). MCC clockwise chase is the
-other updater visual; MCC stock is recovery. Factory reset is
-Oct−+Oct+ / display `rST`.
+Device stays on **Windows** (stop AutoAttach; do not attach `0291` to WSL).
+From this repo:
 
-**Next:** Windows PC_1 stock dump, then E0, then here
-`python3 firmware-re/scripts/listen_ks37.py e0 --seconds 25`.
-Pass = IOI steps **3,3,2**. Details in HANDOFF.
+```
+./scripts/flash-win.sh --dry-run
+./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
+  /mnt/c/Users/jimcu/KeystepFlash/<file>.led
+```
+
+That shells out to Windows `flash_win.py`, which imports this repo’s
+`led_codec.py`. Do **not** use `flash_bl_wsl.sh` (ALSA stall; script now
+refuses). Images live in `C:\Users\jimcu\KeystepFlash\` and local
+`og_firmware/` / `firmware-re/recovery/` — **not in git**. MCC is recovery
+only. Factory reset is Oct−+Oct+ / display `rST`.
+
+**Next:** novel latch gesture (not Shift+keys 1–16). Details in HANDOFF.
 
 ## Core technical direction
 
@@ -75,7 +79,8 @@ The device is recoverable via the stock firmware update path, but only if the bo
 
 1. ~~Reflash stock firmware unmodified.~~ **Done** — MCC Flash A.
 2. ~~Trivial cosmetic patch.~~ **Done** — MCC Flash C (`0x0801F400[0]=FE`); Flash D restored stock.
-3. Euclidean / chord feature. **Packaged.** Enter updater with Rec+Stop+Play; WSL `--already-bootloader` (stock first, then E0 hear-test).
+3. Euclidean / chord feature. **e0b live.** Send with Rec+Stop+Play then
+   `./scripts/flash-win.sh` (Windows winmm). Do not attach `0291` to WSL.
 
 ## Protocol (done, live-verified)
 
@@ -100,20 +105,19 @@ The old claim that framed-file `0x0800af84` is the 8-arp-mode dispatch is
 - `docs/project-brief.md` — short goal statement; defers to HANDOFF
 - `docs/environment-setup.md` — WSL toolchain, USB/MIDI passthrough, Rec+Stop+Play updater
 - `scripts/keystep-see.sh` — confirm stock / app mode (`0219`, Identity 1.1.6); 0291-ready print
-- `scripts/flash_bl_wsl.sh` / `scripts/attach_bootloader.sh` — hardware updater then WSL send
+- `scripts/flash-win.sh` — WSL → Windows `py.exe` `flash_win.py` (default dry-run; parser is `led_codec.py`)
+- `scripts/flash_bl_wsl.sh` — **refuses** (ALSA stall); use `flash-win.sh`
+- `scripts/attach_bootloader.sh` — **do not** attach `0291` to WSL for a dump
 - `scripts/wait_mcc_stock.sh` / `scripts/wait_wsl_reattach.sh` — watch MCC restore and WSL reattach
 - `scripts/flash_euclid_mcc.sh` — MCC fallback (`e0`…`c2`)
 - `firmware-re/scripts/listen_ks37.py` — MIDI hear-test (`e0`, `e1`, `e3-off`, `e3-on`, `c1`, `c2`)
-- `firmware-re/scripts/build_patch.py` — rebuild E0–C2 from `patches/ks37_patch.S`
-- `firmware-re/recovery/` — read-only vendor stock `.led`
-- `firmware-re/firmware-images/rebuild/` — packaged `e0_euclid_3in8.led` … `c2_shift_type.led`
-- `captures/` — saved MIDI/SysEx captures
+- `firmware-re/scripts/build_patch.py` — rebuild E0–C2 from `patches/ks37_patch.S` into KeystepFlash
+- `firmware-re/recovery/` / `og_firmware/` / `firmware-re/firmware-images/` — **local only, gitignored** vendor `.led` / flash extracts
+- `captures/` — saved MIDI/SysEx captures (pcap firmware dumps are gitignored)
 - `firmware-re/notes/` — address catalog, flash map, `.led` notes, chronological findings
 - `firmware-re/descriptors/` — USB descriptor dumps
-- `firmware-re/firmware-images/` — stripped flash extract (`*_flash.bin`)
-- `og_firmware/` — vendor `.led` as distributed by Arturia
 - `midi_control_centre_analysis/` — first-pass MCC binary / resource analysis
-- `arturia_manual/` — official KeyStep 37 user manual (no MIDI/SysEx spec)
+- `arturia_manual/` — official KeyStep 37 user manual (PDFs gitignored)
 - `.venv/` — Python virtualenv (mido, python-rtmidi, capstone, intelhex, pyserial, pillow)
 
 ## Important note

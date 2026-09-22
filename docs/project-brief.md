@@ -9,8 +9,8 @@ the device can always be restored.
 The first feature is a Euclidean gate restripe (Pattern and Seq share
 `play_time_step`) plus later scale-consistent chord. Thumb lives at
 `0x0801F400`. Images are packaged. Enter updater with Rec+Stop+Play;
-WSL `--already-bootloader`. Device is stock 1.1.6. Next: WSL stock
-round-trip, then E0 + `listen_ks37.py e0`.
+leave `0291` on Windows; `./scripts/flash-win.sh`. e0b is live. e3 latch
+needs a novel gesture (not Shift+MIDI CH keys).
 See [HANDOFF.md](HANDOFF.md) **Resume here**.
 
 ## What is already known
@@ -52,11 +52,12 @@ See [firmware-safety-rules.md](firmware-safety-rules.md) and
 1. Discovery needed to **design** a patch is done.
 2. MCC Flash A (stock) → C (unused-page poke) → D (stock restore) done.
 3. Feature images packaged and unicorn-tested. Live send is Rec+Stop+Play
-   then WSL `--already-bootloader`. Never touch bootloader, USB/MIDI
-   stack, or the update path. Do not write `0x0803B000`.
+   then `./scripts/flash-win.sh` (Windows winmm). Never attach `0291` to
+   WSL for a dump. Never touch bootloader, USB/MIDI stack, or the update
+   path. Do not write `0x0803B000`.
 
 ## Immediate work
 
-Hardware Rec+Stop+Play, then `flash_bl_wsl.sh` with stock 1.1.6, then E0
-+ `listen_ks37.py e0`. Abort = MCC stock. Then E1 → skip E2 → E3 → C1 → C2.
-See [HANDOFF.md](HANDOFF.md) **Resume here**.
+Hardware Rec+Stop+Play, AutoAttach off, then `./scripts/flash-win.sh`
+(stock or current KeystepFlash `.led`). Abort = MCC stock. e3b latch is
+not done — Shift+1/2 is MIDI CH. See [HANDOFF.md](HANDOFF.md) **Resume here**.
