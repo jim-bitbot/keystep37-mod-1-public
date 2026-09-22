@@ -66,10 +66,14 @@ reflect discovery status, not permission to skip them.
 
 Per-attempt boxes. Flash C/D already proved enumeration + stock restore.
 WSL `--already-bootloader` via `flash-win.sh` (2026-09-22) proved the
-sender. **No feature hear-test is current work.**
+sender.
 
 - [ ] Device boots and enumerates as `1c75:0219` (or `1c76:0219` VID quirk).
 - [ ] MIDI/USB update path still functions.
+- [ ] **N/A this phase** — custom behavior hear-test
+      (`listen_ks37.py e0` → IOI 3,3,2). Returns when feature work
+      resumes (firmware-safety-rules.md rule 7 stage 3). Do not skip it
+      then: flash is not done until behavior is confirmed.
 - [x] A stock recovery flash is immediately available
       (`firmware-re/recovery/keystep37_1.1.6.579_stock.led`).
 

@@ -76,5 +76,6 @@ Do not send app-mode `productKey` from WSL. MCC stock is recovery
 ./scripts/flash-win.sh --dry-run /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
-**Future** (do not run as current work): `build_patch.py e0|e1|e3|c1|c2`,
-`listen_ks37.py e0|e1|e3-off|c1|c2`, `./scripts/cycle.sh e0b --live`.
+**Future** (refused unless `KS37_FEATURE_FLASH=YES-FEATURE-FLASH`):
+`build_patch.py e0|e1|e3|c1|c2`, `listen_ks37.py e0|e1|e3-off|c1|c2`,
+feature-level `cycle.sh` / `--live`.

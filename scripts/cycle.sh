@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Unicorn-first cycle. Default never flashes and never attaches 0291.
 #
-#   ./scripts/cycle.sh              # emulate all, dry-run stock KeystepFlash
-#   ./scripts/cycle.sh e0b          # build e0b, emulate all, dry-run that .led
-#   ./scripts/cycle.sh e0b --live   # same, then wait 0291 / flash / listen
+# This phase (understand 1.1.6): only `./scripts/cycle.sh` with no level
+# and no --live. Feature levels and --live are FUTURE and exit unless
+# KS37_FEATURE_FLASH=YES-FEATURE-FLASH is set.
 #
-# --live still needs you: Rec+Stop+Play, then hold a key (Hold on).
 # Do not inject notes. Do not attach 0291 to WSL. Do not use flash_bl_wsl.sh.
 set -uo pipefail
 
@@ -28,12 +27,28 @@ usage() {
   cat <<EOF
 usage: $0 [level] [--live] [--skip-build]
 
-  level        e0|e1|e3|c1|c2|e0b|e1b|e3b — build that image first
-  --live       after unicorn + dry-run: wait 0291, flash-win, listen
+  (no args)    emulate all, dry-run stock — this is the understand-1.1.6 cycle
+  level        e0|e1|e3|c1|c2|e0b|e1b|e3b — FUTURE; refused without
+               KS37_FEATURE_FLASH=YES-FEATURE-FLASH
+  --live       FUTURE: wait 0291, flash-win, listen — same env gate
   --skip-build do not run build_patch.py even if a level is given
 
 Default is no --live. Abort if emulate_ks37.py all fails (no MIDI, no flash).
 EOF
+}
+
+# Euclidean/chord rebuild+flash is future work (HANDOFF, firmware-safety-rules).
+require_feature_phase() {
+  local why="$1"
+  if [[ "${KS37_FEATURE_FLASH:-}" == "YES-FEATURE-FLASH" ]]; then
+    echo "KS37_FEATURE_FLASH=YES-FEATURE-FLASH — allowing $why"
+    return 0
+  fi
+  echo "REFUSED: $why is future work (understand 1.1.6 phase)." >&2
+  echo "  Allowed now: $0   # unicorn + dry-run stock, no level, no --live" >&2
+  echo "  Later override: KS37_FEATURE_FLASH=YES-FEATURE-FLASH $0 ${LEVEL:+$LEVEL }${LIVE:+--live}" >&2
+  echo "  See docs/HANDOFF.md and docs/firmware-safety-rules.md rule 7." >&2
+  exit 3
 }
 
 while [[ $# -gt 0 ]]; do
@@ -121,6 +136,13 @@ start_autoattach() {
   "$SCHTASKS" /Run /TN "$AUTOATTACH_TN" >/dev/null 2>&1 || true
   echo "AutoAttach started"
 }
+
+if [[ -n "$LEVEL" ]]; then
+  require_feature_phase "feature level $LEVEL"
+fi
+if [[ "$LIVE" -eq 1 ]]; then
+  require_feature_phase "--live flash"
+fi
 
 echo "=== cycle ${LEVEL:-no-level} live=$LIVE ==="
 

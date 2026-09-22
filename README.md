@@ -93,6 +93,13 @@ Recoverable via stock update only if bootloader, app vector table at
 
 See [`docs/firmware-safety-rules.md`](docs/firmware-safety-rules.md).
 
+## Required validation order
+
+1. ~~Reflash stock firmware unmodified.~~ **Done** — MCC Flash A.
+2. ~~Trivial cosmetic patch.~~ **Done** — MCC Flash C (`0x0801F400[0]=FE`); Flash D restored stock.
+3. Feature hear-test / Euclidean / chord. **Paused** (stage 3). Do not
+   `cycle.sh --live` a feature image. Gate: `KS37_FEATURE_FLASH`.
+
 ## Protocol (done, live-verified)
 
 - USB `1c75:0219` (app; sometimes `1c76:0219`), `1c75:0291` (bootloader). No DFU/HID.

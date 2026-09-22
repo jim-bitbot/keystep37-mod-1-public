@@ -75,13 +75,18 @@ Older “Resume here” sections below are history.
 holes. Cycle leftover-FLAG FAIL is intended until a **future** BSS-init.
 
 Inner loop was Unicorn. Outer loop was Rec+Stop+Play. **No live flash
-in that occupancy work.** Historical commands:
+in that occupancy work.** Do **not** paste a feature `--live` cycle.
+`cycle.sh` refuses feature levels and `--live` unless
+`KS37_FEATURE_FLASH=YES-FEATURE-FLASH`.
+
+Allowed this phase:
 
 ```
-./scripts/cycle.sh            # emulate all → flash-win --dry-run
-./scripts/cycle.sh e0b        # build e0b first
-./scripts/cycle.sh e0b --live # only after occupancy + you say go
+./scripts/cycle.sh
 ```
+
+Historical (FUTURE — not a command to run; `cycle.sh` exits 3):
+`cycle.sh` with a feature level (`e0b` … `c2`) and/or `--live`.
 
 `emulate_ks37.py all` now plants leftover `0xFF` at `FLAG_RAM`
 `0x20005F00` (e3b miss: unused SRAM, not BSS-zeroed). That test FAILs
@@ -656,7 +661,7 @@ program sum. `mutate-test` proves this on both stock images.
 - `firmware-re/scripts/listen_ks37.py` + `scripts/listen-ks37.sh`
 - `firmware-re/captures/listen/stock-chord-20260920-230828.txt`
 - `firmware-re/scripts/ks37_flash.py` (`--already-bootloader`) — **blocked** (ALSA stall)
-- `scripts/cycle.sh` — unicorn `emulate all` then `flash-win.sh --dry-run`; `--live` optional
+- `scripts/cycle.sh` — unicorn `emulate all` then `flash-win.sh --dry-run`. Feature level / `--live` refused unless `KS37_FEATURE_FLASH=YES-FEATURE-FLASH`
 - `scripts/occupancy-listen.sh` — prompted `amidi -d` pass → `firmware-re/captures/occupancy/`
 - `scripts/flash-win.sh` — WSL → `py.exe` `flash_win.py` (default dry-run; parser is `led_codec.py`)
 - `scripts/flash_bl_wsl.sh` / `scripts/attach_bootloader.sh` — **blocked**; dump is `flash-win.sh`

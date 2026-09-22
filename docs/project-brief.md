@@ -51,13 +51,13 @@ CRC. The original KeyStep binary has zero content overlap.
 
 ## Safety
 
-See [firmware-safety-rules.md](firmware-safety-rules.md) and
-[flash-checklist.md](flash-checklist.md).
+See [firmware-safety-rules.md](firmware-safety-rules.md) rule 7 and
+[flash-checklist.md](flash-checklist.md). Order is not optional:
 
-1. Discovery needed to **operate** the flash lab is done.
-2. MCC Flash A (stock) → C (unused-page poke) → D (stock restore) done.
-3. `flash-win.sh` live PASS (2026-09-22). ALSA dump stays refused.
-4. Feature images (E0–C2) are frozen experiments — **future**, not current.
+1. Stage 1 — stock firmware only. **Done** (MCC Flash A).
+2. Stage 2 — harmless cosmetic patch. **Done** (MCC Flash C/D).
+3. Stage 3 — real feature work. **Paused.** `flash-win.sh` live PASS
+   (2026-09-22) is infrastructure. E0–C2 stay frozen. ALSA dump refused.
 
 Never touch bootloader, USB/MIDI stack, or the update path. Do not write
 `0x0803B000`.
