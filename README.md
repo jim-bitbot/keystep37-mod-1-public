@@ -92,7 +92,9 @@ The Shift-handler gap matters most if the goal is a new mode toggle.
 
 The Euclidean hear-tests are a caution on the tick model. The same
 flashed `e0b` image gave a steady 1,2,2, then ~90% every-step, then
-3-in-8. The Walk/Pattern label swap explains some of that. Results that
+3-in-8. Hearing Walk vs Pattern while looking at the wrong TBH case
+(panel CC21 is 1-based; internal is minus one) explains some of that.
+Results that
 change on one image also suggest a second entry into `play_time_step`
 (EXTI0 → `0x08011ff0`) that is not pinned down. Get that reproducible
 before trusting the tick model for a chord generator.

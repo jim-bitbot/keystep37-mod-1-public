@@ -334,8 +334,8 @@ Pattern is **arp-engine `+0x10` == 6** (panel CC21 = 7; CC21 = internal + 1).
 |---|---|---|---|---|
 | `0x08011794` | | set_arp_mode | `if (*obj+0x10 != r1) { *+0x10 = r1; notify }` | S |
 | `0x08011a1c` | | rebuild_order | 8-way **TBH** on `ldrb [obj,#0x10]`; `cmp #7` | S |
-| `0x08011a38` | | mode_tbh | Internal 0–4 Up/Down/Incl/Excl/Random; **5 Order**; **6 Pattern** (semi-random); **7 Order-twin** (same builder as 5). Panel Walk is CC21=6 = internal 5. Do not read this as Walk=6 / Pattern=7 | S |
-| `0x08011c88` | | | TBH cases **5 and 7** (Order and Order-twin share the hold-order list build). Pattern is case 6. Case-body label inside `rebuild_order`, not a function start. `recreate.py` name removed | S |
+| `0x08011a38` | | mode_tbh | Manual / panel / CC21 (1-based): Up Down Incl Excl Random **Walk=6 Pattern=7 Order=8**. Internal `+0x10` is CC21−1. Case 5 = Walk (hold-order list + play-time walk helper); case 6 = Pattern (semi-random); case 7 = Order (same list builder as 5, no walk dice) | S |
+| `0x08011c88` | | | TBH cases **5 and 7** (Walk and Order share the hold-order list build). Pattern is case 6. Case-body label inside `rebuild_order`, not a function start. `recreate.py` name removed | S |
 | `0x08016a26` | | mode_knob_apply | `mode_byte_get` then `set_arp_mode`. Settings ptr `*0x20001170`, engine `*0x20001094` | S |
 | `0x08017f20` | | set_mode_alt | Second `bl` to `set_arp_mode` | S |
 | `0x0800e4d2` | `0x0800a9b2` | vtable_init | Clears `+0x214`, stores `+0x210` callback | S |
@@ -345,7 +345,7 @@ Pattern is **arp-engine `+0x10` == 6** (panel CC21 = 7; CC21 = internal + 1).
 | `0x0800dd30` | `0x0800a1d4` | seq_slot_base | `0x0803B000 + n*0x800` | S |
 | `0x080129cc` | | arp_seq_tick | Object `0x20002bec` (ctor `0x08011d7c`). `+0x38` step, `+0x10` length, `+0xe` tempo halfword (Ticket AA), `+0x55` signed byte. Then `bl 0x08013e8c` at `0x08012ec0`. Swing **table** is `0x0801ec64` (AO). AX: `0x0801312e` `strb` to `+0x401` via `*0x20001150` | S |
 | `0x08012048` | | tempo_clamp | Clamps r1 to 3000–24000, `strh [r0,#0xe]`, then TIM2 ARR via `0x08012084`. Tick object `0x20002bec`. Name tentative | S |
-| `0x08013e8c` | | play_time_step | **Pattern player.** Reads the current slot step and emits. Callers: tick `0x08012ec0` (Arp, once per step change), dispatch `0x08012028` via `0x08011ff0` (gated on `*(0x20001124)+0x10==2`). AZ: sole static `bl` to `0x08011ff0` is EXTI0 `0x080183c6`. When `engine+0xf==0` and `+0x10==5` (Order) remaps the step through `0x08011878`; **mode 6 (Pattern) and mode 7 keep the sequencer step** | S |
+| `0x08013e8c` | | play_time_step | **Pattern player.** Reads the current slot step and emits. Callers: tick `0x08012ec0` (Arp, once per step change), dispatch `0x08012028` via `0x08011ff0` (gated on `*(0x20001124)+0x10==2`). AZ: sole static `bl` to `0x08011ff0` is EXTI0 `0x080183c6`. When `engine+0xf==0` and `+0x10==5` (Walk) remaps the step through `0x08011878`; **mode 6 (Pattern) and mode 7 (Order) keep the sequencer step** | S |
 | `0x080130e8` | | seq_step_note | `*(uint8*)(*obj + (voice + step*8)*2)` — 16-byte stride, 8 voices × 2 bytes. Voice 0 is the Pattern pitch byte | S |
 | `0x080130f4` | | seq_step_gate | Byte +1 of the same cell. `0x82` at step 0 is the empty-slot magic from `0x080137c4`. Callers (all inside `play_time_step`): `0x08013f62`, `0x08013fde`, `0x080141d2` — E0+ retarget these to `euclid_wrap` | S |
 | `0x08011874` | | get_arp_mode | `ldrb r0,[r0,#0x10]` | S |
@@ -411,9 +411,9 @@ inside `rebuild_order`, not function starts.
 | 2 | Incl | `0x08011b2c` |
 | 3 | Excl | `0x08011bb6` |
 | 4 | Random | `0x08011c46` |
-| 5 | Order | `0x08011c88` |
-| 6 | **Pattern** (was labeled Walk) | `0x08011cca` |
-| 7 | **Order-twin, UI label unconfirmed** (was labeled Pattern) | `0x08011c88` (same as Order) |
+| 5 | **Walk** (panel CC21=6). Builder is the hold-order list; play-time uses `0x08011878` | `0x08011c88` |
+| 6 | **Pattern** (panel CC21=7). Semi-random builder | `0x08011cca` |
+| 7 | **Order** (panel CC21=8). Same list builder as Walk, no walk dice | `0x08011c88` (same as 5) |
 
 **Resolved, 2026-09-22, by our own disassembly** (not just the external
 source): `0x08011cca` is a 2-instruction trampoline into `0x0801196c`,
@@ -431,9 +431,11 @@ the CC-transmit path at `0x08005a72` does `adds r1, r0, #1` then
 `movs r0, #0x15` (`bl 0x08006914`) — outbound CC21 = `settings+0x55` + 1,
 except when `+0x55==8` (no CC). `mode_byte_get` is a raw
 `ldrb [r0,#0x55]`; `set_arp_mode` stores that byte raw to `engine+0x10`.
-Panel Pattern (CC21=7) is internal 6, the semi-random builder. Panel Walk
-(CC21=6) is internal 5 (Order builder + play-time walk helper
-`0x08011878`). Panel Order (CC21=8) is internal 7 (Order-twin).
+Panel **Walk=6 / Pattern=7 / Order=8** (CC21, manual §5.3 / encoder
+legend: Up Down Incl Excl Random Walk Pattern Order) are correct.
+Internal is CC21−1, so those are TBH cases 5 / 6 / 7. Walk and Order
+share the hold-order list builder; Walk adds the play-time helper
+`0x08011878`. Pattern (internal 6) is the semi-random builder.
 
 ### How a Pattern step becomes a hold index
 

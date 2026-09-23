@@ -222,8 +222,9 @@ occupancy). Open: persist commit, GPIOD jack vs DIP, unnamed Shift
 handlers, AT–BA unmodeled, family selector, ~12 role-less ctors,
 store case 5, hold-length-clear. Host SET is Arturia v2 verb `02`
 (same shape as GET reply), not a second TBB. Mode row `0x08011a38`
-corrected (6=Pattern, 5=Order/Walk). `model/synthesis.md` “Top open
-leads” is still labelled post Round-2.
+Panel arp modes Walk=6 / Pattern=7 / Order=8 (CC21, manual §5.3)
+are correct; internal TBH is those minus one. `model/synthesis.md`
+“Top open leads” is still labelled post Round-2.
 
 ## Resume here — 2026-09-22 — cycle harness + occupancy map
 
