@@ -1,147 +1,154 @@
-# Arturia KeyStep 37 — firmware 1.1.6.579
+# KeyStep 37 — firmware 1.1.6 notes
 
-**Read first:** [`docs/HANDOFF.md`](docs/HANDOFF.md). Addresses:
-[`firmware-re/notes/address-catalog.md`](firmware-re/notes/address-catalog.md).
-Packaging: [`firmware-re/notes/led-header.md`](firmware-re/notes/led-header.md).
-MCU / holes: [`firmware-re/notes/flash-map.md`](firmware-re/notes/flash-map.md).
-Evidence log: [`firmware-re/notes/findings-2026-09-20.md`](firmware-re/notes/findings-2026-09-20.md)
-(chronological; mid-file “not yet located” paragraphs are stale).
-Method: [`docs/ARTURIA-FIRMWARE-RE-GUIDE.md`](docs/ARTURIA-FIRMWARE-RE-GUIDE.md).
+Derived reverse-engineering notes for the stock Arturia KeyStep 37
+**application** firmware 1.1.6.579. Not Arturia’s firmware, not a
+replacement image, and not something you flash from this repo.
 
-## Current goal (2026-09-22)
+Vendor `.led` files, the stripped flash extract, official manuals, and
+update captures are **not published**. They stay local (see
+[`.gitignore`](.gitignore)). Everything here is addresses, dumps,
+narratives, and tools that operate on a copy you already have.
 
-**Understand stock application 1.1.6.579 as a machine model** so later
-patches can be designed from objects, RAM, loops, and the three input
-buses — not from another feature hunt.
+If you came here for a custom firmware: there isn’t one.
 
-This is not a firmware rewrite. It is not a 9th Mode-knob detent. Do
-**not** build or flash Euclidean / chord images in this phase. Those
-experiments exist on disk (`e0b`…`c2`) and are **future work**.
+## Start here
 
-Flash without MIDI Control Center is **solved lab infrastructure**. Do
-not reopen the WSL ALSA updater. Do not attach `0291` to WSL.
-
-## Status
-
-| Area | State |
+| File | What it is |
 |---|---|
-| Stock `.led` + stripped flash extract | Done |
-| Huaxin packaging + checksums (`led_codec.py`) | Done |
-| Flash without MCC (Rec+Stop+Play → `flash-win.sh`) | **Closed.** MCC is recovery only |
-| Panel occupancy (silk + Test-20 CCs + eyes-on holes) | **Done enough.** [`stock-shift-map.md`](firmware-re/notes/stock-shift-map.md) |
-| Machine model of 1.1.6 (boot, objects, loop, IRQs, three buses, time, voice) | **Current work.** Islands only (~40 named functions) |
-| Euclidean restripe / latch / scale-chord | **Future.** Packaged; do not extend or reflash |
+| [`firmware-re/notes/address-catalog.md`](firmware-re/notes/address-catalog.md) | Named flash/RAM addresses. This is the map. |
+| [`firmware-re/notes/stock-shift-map.md`](firmware-re/notes/stock-shift-map.md) | Every panel gesture and its Test-20 control ID. |
+| [`firmware-re/notes/scans/tickets.md`](firmware-re/notes/scans/tickets.md) | Ticket list A–BA and what each one asked. |
+| [`firmware-re/notes/flash-map.md`](firmware-re/notes/flash-map.md) | MCU, app range, unused fill. |
+| [`firmware-re/notes/led-header.md`](firmware-re/notes/led-header.md) | How a `.led` is framed (Huaxin segments + checksums). |
+| [`docs/ARTURIA-FIRMWARE-RE-GUIDE.md`](docs/ARTURIA-FIRMWARE-RE-GUIDE.md) | How the notes were built (wire constant → `cmp` → callers). |
 
-Analyze `firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin`
-(base `0x08000000`). App Thumb is `0x08004000`–`0x0801F400`.
+Catalog tags:
 
-## Flash lab (do not explore further)
+- **P** — live protocol or occupancy ID matches an immediate in code
+- **S** — structure from disassembly or Unicorn
+- **H** — hypothesis (including claims not re-traced here)
+- **X** — ruled out
 
-Enter the updater with **Rec+Stop+Play** on plug (Hold/Shift alternate).
-Device stays on **Windows** (stop AutoAttach; do not attach `0291` to WSL).
+A ticket is a scan dump plus a model write-up. Scans live in
+[`firmware-re/notes/scans/`](firmware-re/notes/scans/). Narratives and
+proposed catalog rows live in
+[`firmware-re/notes/model/`](firmware-re/notes/model/). The catalog is
+the accepted subset.
+
+Tickets **A–AS** are modeled and copied into the catalog. Scans **AT–BA**
+are on disk and not modeled yet. The USB stack body and the bootloader
+(`0x08000000`–`0x08003FFF`) were left alone on purpose.
+
+[`firmware-re/notes/findings-2026-09-20.md`](firmware-re/notes/findings-2026-09-20.md)
+is a chronological lab log. Mid-file “not yet” paragraphs are stale;
+prefer the catalog.
+
+## What the application looks like
+
+STM32F1. Image base `0x08000000`. App Thumb `0x08004000`–`0x0801F400`.
+Addresses in the catalog are **flash VAs** on the stripped extract, not
+file offsets into a framed `.led`.
+
+**Boot.** `Reset_Handler` copies `.data`, zeros `.bss` through
+`0x20005eac`, then a ctor sweep builds on the order of fifty objects
+(knobs, tick, ports, debounce, sequence blocks).
+
+**Loop and IRQs.** One forever loop. SysTick, TIM2, USART1 (DIN MIDI),
+a USB ISR thunk, and EXTI0 (GPIOD pulse into the step/play path). TIM2
+does not itself walk the tick object.
+
+**Three input buses.**
+
+- Keys go through `0x0801b750`.
+- Buttons use a compact ID table (`Hold/Shift/Oct−/Oct+/Tap/Rec/Stop/Play`,
+  else Chord). Shift held is RAM `0x200010d2`.
+- Analog kinds 1–4 map to Type / Notes / Vel / Strum (`0x62`–`0x65`);
+  kind 0 and ≥5 map to Rate (`0x66`).
+
+**Time.** Tick object `0x20002bec`: step at `+0x38`, length at `+0x10`,
+tempo halfword at `+0xe` (clamped 3000–24000, then TIM2 ARR). Time Div
+is a byte on `0x20001000`. Swing values are a nine-byte flash table at
+`0x0801ec64`; the panel write lands at sequence-slot `+0x401`.
+
+**Voice out.** A step plays only if voice-0 pitch is not a rest/tie
+(`0x81`/`0x82`) — that check is the emission gate, not `seq_step_gate`
+bit 7 (retention). Key notes leave on DIN via USART1. USB MIDI out is a
+separate call site, not a slot on the DIN/display object. Pattern mode
+is engine `+0x10 == 6` (panel CC 21 = 7).
+
+**Protocol.** App-mode GET is mapped. There is no sibling SET TBB;
+writes are the panel/knob paths already in the catalog.
+
+**Persist.** Slot flash can be loaded into RAM. The STM32 `FLASH_KEYR`
+unlock sequence is identified. The application trigger that *commits* a
+slot is not.
+
+**Clock / sync.** A four-pin GPIOD object (`0x20004f00`) is read through
+IDR bit tests and can gate TIM2 disable and MIDI-Start. Which pin is
+the jack vs a DIP is still a hypothesis.
+
+**Panel occupancy.** Shift+keys 1–16 are Keyboard MIDI channel, not
+free. Shift+Tap is tempo. Chord-then-Rec lights Rec. The map is
+[`stock-shift-map.md`](firmware-re/notes/stock-shift-map.md).
+
+Ghidra names for confirmed **function starts** only:
+[`firmware-re/ghidra/recreate.py`](firmware-re/ghidra/recreate.py).
+
+## What’s in the tree
 
 ```
-./scripts/flash-win.sh --dry-run
-./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
-  /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
+firmware-re/notes/address-catalog.md   accepted addresses
+firmware-re/notes/scans/               raw Capstone dumps (A–BA)
+firmware-re/notes/model/               narratives + proposed rows (A–AS)
+firmware-re/notes/stock-shift-map.md   panel occupancy
+firmware-re/ghidra/recreate.py         Ghidra name script
+firmware-re/scripts/scan_firmware.py   TBB / bl-to / cmp-imm
+firmware-re/scripts/led_codec.py       .led parse / extract / retarget
+firmware-re/scripts/emulate_ks37.py    Unicorn harness
+firmware-re/captures/                  occupancy + listen logs
+docs/                                  method, safety, lab setup
+midi_control_centre_analysis/          notes on MCC (no vendor exe)
 ```
 
-That shells out to Windows `flash_win.py`, which imports this repo’s
-`led_codec.py`. `flash_bl_wsl.sh` refuses (ALSA stall). Images live in
-`C:\Users\jimcu\KeystepFlash\` and local `og_firmware/` /
-`firmware-re/recovery/` — **not in git**. Factory reset is Oct−+Oct+ /
-display `rST`.
+Scripts under `scripts/` and `firmware-re/scripts/` are the lab
+wrappers (scan, listen, flash-from-Windows, occupancy). They expect a
+local extract and a device. Default flash is dry-run.
 
-## Already known (islands, not a model)
+[`firmware-re/patches/`](firmware-re/patches/) is leftover source from
+an earlier Euclidean / scale-chord experiment. It is not a supported
+build in this repo, and the `.led` images are not checked in.
 
-1. Stock firmware downloaded — `og_firmware/`.
-2. `.led` is Huaxin segments; stripped extract at `0x08000000`; app
-   vector table at `0x08004000`.
-3. Pattern player named: engine `+0x10 == 6` (CC21=7), TBH `0x08011a38`,
-   `play_time_step` `0x08013e8c`. Pitch-gate (not `seq_step_gate` bit 7)
-   is the note-emission check. `object+0x214` is an event table, not
-   eight mode vtables.
-4. Panel control IDs = Test-20 CCs. Shift held = RAM `0x200010d2`.
-5. Checksums: Huaxin additive program + per-footer u16s. Always
-   `led_codec.py retarget` before any future dump.
+## If you have the extract
 
-Daniel Gruss reverse-engineered the **original** KeyStep. Confirmed here:
-hex-encoded `.led`, unsigned/unencrypted app, SysEx update, separate
-bootloader. **KS37 checksums** are Huaxin/midiplus, not a 20-byte flat
-header. The original KeyStep binary has zero content overlap.
+```
+# image: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+# file offset 0 = 0x08000000
 
-## Future (not this phase)
+python3 firmware-re/scripts/scan_firmware.py
+```
 
-Custom Thumb, when it happens, lives on unused fill at `0x0801F400`.
-Earlier Euclidean (e0b/e1b/e3b) and scale-chord (C1/C2) images are
-frozen experiments. Do not steal Shift+keys 1–16 (stock MIDI CH). A
-later latch, if any, comes from empty cells in `stock-shift-map.md` §8
-after the 1.1.6 model exists.
+Ghidra: import that bin as `ARM:LE:32:Cortex` at `0x08000000`, then run
+`recreate.py` as a post-script.
+
+`.led` packaging (checksums, extract, retarget) is
+`firmware-re/scripts/led_codec.py`. Always retarget after you edit a
+framed image.
 
 ## Safety
 
-Recoverable via stock update only if bootloader, app vector table at
-`0x08004000`, and USB/MIDI stack stay intact:
+This repo does not ship a firmware image. If you work on a device
+anyway: do not write the bootloader, the app vector table at
+`0x08004000`, the USB/MIDI stack, or sequence-slot flash at
+`0x0803B000`. Keep an untouched stock `.led` for recovery. Details:
+[`docs/firmware-safety-rules.md`](docs/firmware-safety-rules.md).
 
-- never write the bootloader (`0x08000000`–`0x08003FFF`, not in this `.led`)
-- preserve the app vector table at `0x08004000`
-- never modify the USB/MIDI stack or update path code
-- keep future custom logic isolated in unused flash (`0x0801F400`)
-- always keep an untouched stock firmware image for recovery
-- do not write `0x0803B000` (on-device sequence slots)
-- do not flash anything whose behaviour is not understood
-
-See [`docs/firmware-safety-rules.md`](docs/firmware-safety-rules.md).
-
-## Required validation order
-
-1. ~~Reflash stock firmware unmodified.~~ **Done** — MCC Flash A.
-2. ~~Trivial cosmetic patch.~~ **Done** — MCC Flash C (`0x0801F400[0]=FE`); Flash D restored stock.
-3. Feature hear-test / Euclidean / chord. **Paused** (stage 3). Do not
-   `cycle.sh --live` a feature image. Gate: `KS37_FEATURE_FLASH`.
-
-## Protocol (done, live-verified)
-
-- USB `1c75:0219` (app; sometimes `1c76:0219`), `1c75:0291` (bootloader). No DFU/HID.
-- Bootloader transfer: Rec+Stop+Play (or MCC `productKey`) then `F0` +
-  hex-ASCII `.led` slice + `F7`. App-mode `productKey` does not enter the
-  updater — do not send it.
-- App-mode GET uses the `arturia_v2` SysEx envelope.
-- Pattern = Mode knob CC 21 value **7**. Occupancy CCs: [`stock-shift-map.md`](firmware-re/notes/stock-shift-map.md) §10.
-- Arp ignores injected MIDI notes; physical keys only.
-
-## Directory layout
-
-- `docs/HANDOFF.md` — current status; read this first in a new session
-- `docs/two-agent-protocol.md` — Cursor vs Claude file ownership (same repo)
-- `AGENTS.md` / `CLAUDE.md` — pointers for both agents
-- `firmware-re/notes/scans/` — **Cursor only** (binary dumps)
-- `firmware-re/notes/model/` — **Claude only** (narratives + proposed catalog)
-- `docs/firmware-safety-rules.md` — non-negotiable safety rules
-- `docs/flash-checklist.md` — flash lab checklist (infrastructure)
-- `docs/project-brief.md` — short goal statement
-- `docs/environment-setup.md` — WSL toolchain, USB/MIDI, updater
-- `scripts/flash-win.sh` — WSL → Windows `py.exe` `flash_win.py` (default dry-run)
-- `scripts/flash_bl_wsl.sh` — **refuses** (ALSA stall)
-- `scripts/keystep-see.sh` — confirm app mode (`0219`, Identity 1.1.6)
-- `firmware-re/scripts/led_codec.py` — Huaxin parse / extract-flash / retarget
-- `firmware-re/scripts/scan_firmware.py` — TBB / `bl-to` / cmp-imm on the extract
-- `firmware-re/ghidra/recreate.py` — confirmed names only
-- `firmware-re/notes/stock-shift-map.md` — panel occupancy + control IDs
-- `firmware-re/notes/address-catalog.md` — flash VAs (P/S/H/X)
-- `firmware-re/recovery/` / `og_firmware/` / `firmware-re/firmware-images/` — **gitignored** vendor `.led` / extract
-- `firmware-re/patches/` / `build_patch.py` / E0–C2 images — **future** feature work
-- `arturia_manual/` — official KeyStep 37 1.1 EN (PDFs gitignored)
-- `.venv/` — capstone, mido, python-rtmidi, …
-
-## Important note
-
-This project is conservative. The current objective is to **understand
-stock 1.1.6**. If a step cannot be verified, it is not flashed.
+Daniel Gruss reverse-engineered the original KeyStep. Confirmed here:
+hex-encoded `.led`, unsigned app, SysEx update, separate bootloader.
+KeyStep 37 checksums are the Huaxin/midiplus segment scheme, not a
+20-byte flat header. The two binaries do not overlap.
 
 ## Questions
 
-This repo is the derived-notes side of the project — verified facts and
-reasoning, not vendor material. A few things (factory/service-mode
-details among them) are intentionally kept out of the public notes here.
-If you're working on something similar and want more, DM me.
+A few things (factory / service-mode details among them) are kept out of
+these public notes on purpose. If you’re working on something similar
+and want more, DM me.
