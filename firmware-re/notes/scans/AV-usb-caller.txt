@@ -1,0 +1,94 @@
+STATUS: done
+AGENT: cursor
+TICKET: AV
+UPDATED: 2026-09-23T22:10+01:00
+INPUT: scans/Z-usbdin-emu.txt; firmware bin
+
+# AV-usb-caller — who reaches 0x08010e46
+# Do not walk 0x080091ca.
+
+## 1. site 0x08010e46 is mid-fn
+
+  0x08010e40  mov      r3, r5
+  0x08010e42  ldr      r2, [pc, #0x10]  ; 0x20000334
+  0x08010e44  movs     r1, #0x81
+  0x08010e46  ldr      r0, [pc, #0x10]  ; 0x20005888
+  0x08010e48  bl       #0x80091ca
+  0x08010e4c  movs     r0, #1
+
+bl to 0x08010e46: 0
+Thumb ptr 0x08010e47: 0
+
+## 2. containing start 0x08010db0
+
+  0x08010db0  push     {r4, r5, r6, lr}
+  0x08010db2  sub      sp, #0x18
+  0x08010db4  mov      r4, r0
+  0x08010db6  movs     r5, #0
+  0x08010db8  mov      r6, r5
+  0x08010dba  b        #0x8010de6
+  0x08010dbc  uxtb     r6, r6
+  0x08010dbe  cmp      r6, #0
+  0x08010dc0  bne      #0x8010e40
+  0x08010dc2  movs     r0, #0
+  0x08010dc4  add      sp, #0x18
+  0x08010dc6  pop      {r4, r5, r6, pc}
+
+bl to 0x08010db0: 1  → 0x08010e9c
+Thumb ptr 0x08010db1: 0
+
+## 3. 0x08010e9c is inside 0x08010e5c
+
+  0x08010e5c  push     {r3, r4, r5, lr}
+  0x08010e5e  mov      r4, r0
+  0x08010e60  bl       #0x8006ec8
+  0x08010e64  ldr.w    r3, [r4, #0x9c]
+  0x08010e68  subs     r0, r0, r3
+  0x08010e6a  cmp      r0, #4
+  0x08010e6c  bhi      #0x8010e70
+  0x08010e6e  pop      {r3, r4, r5, pc}
+  0x08010e70  bl       #0x8006ec8
+  0x08010e74  str.w    r0, [r4, #0x9c]
+  0x08010e78  ldr      r3, [pc, #0xbc]  ; 0x2000028c
+  0x08010e7a  ldr      r3, [r3]
+  0x08010e7c  cbz      r3, #0x8010ea2
+  0x08010e8c  ldr      r3, [pc, #0xac]  ; 0x20000214
+  0x08010e8e  ldr      r3, [r3]
+  0x08010e90  cmp      r3, #0
+  0x08010e92  beq      #0x8010f24
+  0x08010e94  ldr      r3, [pc, #0xa4]  ; 0x20000214
+  0x08010e96  ldr      r0, [r3]
+  0x08010e98  cmp      r0, #0
+  0x08010e9a  beq      #0x8010e6e
+  0x08010e9c  bl       #0x8010db0
+  0x08010ea0  b        #0x8010e6e
+
+## 4. bl to 0x08010e5c
+
+3 callers
+
+### 4a  0x0800663e / 0x08006648
+
+  0x08006630  push     {r4, lr}
+  0x08006632  ldr      r3, [pc, #0x2c]  ; 0x20000214
+  0x08006634  ldr      r3, [r3]
+  0x08006636  cbz      r3, #0x800664e
+  0x08006638  ldr      r3, [pc, #0x24]  ; 0x20000214
+  0x0800663a  ldr      r4, [r3]
+  0x0800663c  mov      r0, r4
+  0x0800663e  bl       #0x8010e5c
+  0x08006642  bl       #0x8006618
+  0x08006646  mov      r0, r4
+  0x08006648  bl       #0x8010e5c
+
+### 4b  0x08015840  (app_main_loop)
+
+  0x08015832  ldr      r3, [pc, #0x1d8]  ; 0x20000214
+  0x08015834  ldr      r3, [r3]
+  0x08015836  cmp      r3, #0
+  0x08015838  beq.w    #0x8015976
+  0x0801583c  ldr      r3, [pc, #0x1cc]  ; 0x20000214
+  0x0801583e  ldr      r0, [r3]
+  0x08015840  bl       #0x8010e5c
+
+STATUS: done

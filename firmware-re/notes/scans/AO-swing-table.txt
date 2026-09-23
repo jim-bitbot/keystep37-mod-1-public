@@ -1,0 +1,80 @@
+STATUS: done
+AGENT: cursor
+TICKET: AO
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/AA-swing-tempo.txt; firmware bin
+
+# AO-swing-table — occupancy swing byte run and +0x401 users
+
+## 1. byte run 3436393c3f43474b
+
+  hit 0x0801ec65  (mid-table; aligned base 0x0801ec64)
+
+count 1
+
+Do not disassemble 0x0801ec64 as Thumb. Bytes:
+
+  0x0801ec64  32 34 36 39 3c 3f 43 47 4b 00 00 00  "REC" follows
+
+9 bytes. Occupancy swing set is the last 8 (missing leading 0x32=50).
+
+Literal word 0x0801ec64 at 0x08017034 (pool). Reader:
+
+  0x08016f34  cmp      r1, #0x14
+  0x08016f36  ble      #0x8016f6a
+  0x08016f38  cmp      r1, #0x1d
+  0x08016f3a  ble      #0x8016f7c
+  0x08016f7c  sub.w    r4, r1, #0x15
+  0x08016f80  ldr      r3, [pc, #0xb0]  ; 0x0801ec64
+  0x08016f82  ldrb     r1, [r3, r4]
+  0x08016f84  ldr      r3, [pc, #0xa8]  ; 0x20001150
+  0x08016f86  ldr      r0, [r3]
+  0x08016f88  bl       #0x801312e
+
+Index = r1 - 0x15 when 0x15 ≤ r1 ≤ 0x1d. Role of r1 (control ID vs
+other) not named here. +0x401 loads in §2 do not index this table.
+
+## 2. +0x401 load then use (not the store-only sites)
+
+### 0x08011fc6
+  0x08011fc6  ldrb.w   r3, [r5, #0x401]
+  0x08011fca  uxth     r4, r4
+  0x08011fcc  b        #0x8011fbc
+  0x08011fce  ldrb     r3, [r6, #0xc]
+  0x08011fd0  cmp      r3, #2
+  0x08011fd2  beq      #0x8011fd6
+  0x08011fd4  pop      {r4, r5, r6, pc}
+  0x08011fd6  ldr      r3, [pc, #0x14]  ; 0x200000bc
+  0x08011fd8  ldr      r2, [r3]
+  0x08011fda  add      r5, r2
+  0x08011fdc  subs     r5, #1
+  0x08011fde  str      r5, [r3]
+
+### 0x0801314e
+  0x0801314e  ldrb.w   r0, [r3, #0x401]
+  0x08013152  bx       lr
+  0x08013154  push     {r3, lr}
+  0x08013156  strb.w   r1, [r0, #0x2e]
+  0x0801315a  add.w    r1, r0, #8
+  0x0801315e  bl       #0x801302e
+  0x08013162  pop      {r3, pc}
+  0x08013164  ldrb.w   r0, [r0, #0x30]
+  0x08013168  bx       lr
+  0x0801316a  push     {r4, r5, r6}
+  0x0801316c  sub      sp, #0xc
+  0x0801316e  str      r1, [sp, #4]
+
+### 0x080146ae
+  0x080146ae  ldrb.w   r3, [r4, #0x401]
+  0x080146b2  strb     r3, [r1, #0xd]
+  0x080146b4  b        #0x80146aa
+  0x080146b6  ldrb.w   r3, [r4, #0x402]
+  0x080146ba  strb     r3, [r1, #0xd]
+  0x080146bc  b        #0x80146aa
+  0x080146be  ldrb     r6, [r1, #0xb]
+  0x080146c0  subs     r6, #1
+  0x080146c2  uxtb     r6, r6
+  0x080146c4  movs     r3, #0
+  0x080146c6  b        #0x80146da
+  0x080146c8  lsls     r0, r0, #4
+

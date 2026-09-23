@@ -1,0 +1,59 @@
+STATUS: done
+AGENT: cursor
+TICKET: AY
+UPDATED: 2026-09-23T22:10+01:00
+INPUT: scans/AS-sync-idr.txt; scans/C-loop-irq.txt; firmware bin
+
+# AY-exti0 — EXTI0 vector vs TIM2 / GPIOD
+# Vector at app table IRQ6 → Thumb 0x0801831c. USB not walked.
+
+## 1. vector
+
+IRQ6 word at 0x08004000+22*4 → 0x0801831d
+
+## 2. 0x0801831c
+
+  0x0801831c  ldr      r3, [pc, #0x1a0]  ; 0x40010400
+  0x0801831e  ldr      r3, [r3, #0x14]
+  0x08018320  tst.w    r3, #1
+  0x08018324  bne      #0x8018328
+  0x08018326  bx       lr
+  0x08018328  push     {r4, lr}
+  0x0801832a  sub      sp, #8
+  0x0801832c  ldr      r3, [pc, #0x190]  ; 0x40010400
+  0x0801832e  movs     r2, #1
+  0x08018330  str      r2, [r3, #0x14]
+  0x08018332  ldr      r3, [pc, #0x190]  ; 0x20001128
+  0x08018334  ldr      r0, [r3]
+  0x08018336  bl       #0x8019234
+  0x0801833a  cmp      r0, #1
+  0x0801833c  bne      #0x8018346
+  0x0801833e  ldr      r3, [pc, #0x188]  ; 0x200051cc
+  0x08018340  ldrb.w   r3, [r3, #0x47]
+  0x08018344  cbnz     r3, #0x8018352
+  0x08018346  ldr      r3, [pc, #0x184]  ; 0x20001098
+  0x08018348  ldr      r0, [r3]
+  0x0801834a  bl       #0x8012330
+  0x0801834e  cmp      r0, #2
+  0x08018350  beq      #0x8018356
+
+0x40010400+0x14 is AFIO/EXTI PR write-1-to-clear (line 0).
+
+## 3. later in same fn (from AS)
+
+  0x080183cc  ldr      r3, [pc, #0xf4]  ; 0x20001128
+  0x080183ce  ldr      r0, [r3]
+  0x080183d0  bl       #0x8019244
+  0x080183d4  cmp      r0, #0
+  0x080183d6  bne      #0x8018352
+  0x080183d8  ldr      r0, [pc, #0x100]  ; 0x20005534
+  0x080183da  bl       #0x800b0c6
+
+## 4. static bl to 0x0801831c / 0x08018328
+
+0  (IRQ vector only)
+
+pc-rel 0x20002bec in 0x0801831c–0x080183da: 0
+bl arp_seq_tick: 0
+
+STATUS: done

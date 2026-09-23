@@ -1,0 +1,129 @@
+STATUS: done
+AGENT: cursor
+TICKET: J
+UPDATED: 2026-09-23T19:55+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# J-voice — cell to port
+# play_time_step does not bl voice_interval_load or voice_note_on.
+# Those two labels sit inside 0x0801b750. USB vs DIN is not a direct bl.
+
+## 1. play_time_step callers
+
+  0x08012028  bl 0x08013e8c
+  0x08012ec0  bl 0x08013e8c
+
+## 2. pitch_gate_check 0x08013ebc
+
+Voice 0 pitch via seq_step_note. (pitch+0x7f)&0xff <= 1 branches to 0x08013f38.
+
+  0x08013ebc  0022        movs     r2, #0
+  0x08013ebe  0099        ldr      r1, [sp]
+  0x08013ec0  2068        ldr      r0, [r4]
+  0x08013ec2  fff711f9    bl       #0x080130e8
+  0x08013ec6  7f30        adds     r0, #0x7f
+  0x08013ec8  c0b2        uxtb     r0, r0
+  0x08013eca  0128        cmp      r0, #1
+  0x08013ecc  34d9        bls      #0x08013f38
+
+## 3. Cell readers
+
+seq_step_note 0x080130e8 — byte at (voice + step*8)*2:
+
+  0x080130e8  0368        ldr      r3, [r0]
+  0x080130ea  02ebc102    add.w    r2, r2, r1, lsl #3
+  0x080130ee  13f81200    ldrb.w   r0, [r3, r2, lsl #1]
+  0x080130f2  7047        bx       lr
+
+Callers: 0x08013ec2, 0x08013efe, 0x080140b6, 0x080141a6.
+
+seq_step_gate 0x080130f4 — byte +1 of that cell:
+
+  0x080130f4  0368        ldr      r3, [r0]
+  0x080130f6  02ebc101    add.w    r1, r2, r1, lsl #3
+  0x080130fa  03eb4103    add.w    r3, r3, r1, lsl #1
+  0x080130fe  5878        ldrb     r0, [r3, #1]
+  0x08013100  7047        bx       lr
+
+Callers: 0x08013f62, 0x08013fde, 0x080141d2.
+At 0x08013f66 the return is ubfx bit 7 into sb.
+
+seq_step_release 0x0801415c is its own push. Callers: 0x08011f40, 0x0801200a, 0x08012fcc. Not a bl from inside play_time_step.
+
+  0x0801415c  70b5        push     {r4, r5, r6, lr}
+  0x0801415e  84b0        sub      sp, #0x10
+  0x08014160  0446        mov      r4, r0
+  0x08014164  384b        ldr      r3, [pc, #0xe0]   ; 0x20001124
+
+## 4. Sequencer send
+
+play_time_step bl 0x0801b6c4 at:
+  0x08013f7c  0x0801407c  0x08014118
+  0x0801421e  0x080142a8  0x08014326
+
+0x0801b6c4 sets r6=1 and passes that as r3 to 0x0801b384:
+
+  0x0801b6de  0126        movs     r6, #1
+  0x0801b6ea  2068        ldr      r0, [r4]
+  0x0801b6ec  fff7b8fe    bl       #0x0801b460
+  0x0801b6f0  3346        mov      r3, r6
+  0x0801b6f6  2068        ldr      r0, [r4]
+  0x0801b6f8  fff744fe    bl       #0x0801b384
+
+## 5. Key path is a different function
+
+Previous push before voice_interval_load is 0x0801b750.
+0x0801ba9c loads 0x200051cc+0x4f and 0x200000c8, then bl noteval.
+0x0801bab8 loads +0x4d, builds 0x90|channel, then bl 0x0801348e.
+0x0801348e compares the status with 0x90 and 0x80. Its only bl in
+0x0801348e–0x08013700 is 0x0801367c → 0x0801302e.
+
+Same function also calls 0x0801b384 with r3=0:
+
+  0x0801b992  0023        movs     r3, #0
+  0x0801b994  0199        ldr      r1, [sp, #4]
+  0x0801b996  fff7f5fc    bl       #0x0801b384
+
+noteval 0x0801c3ca head (r0 + r2, r1 kept):
+
+  0x0801c3ca  0028        cmp      r0, #0
+  0x0801c3cc  10db        blt      #0x0801c3f0
+  0x0801c3d2  30b4        push     {r4, r5}
+  0x0801c3d4  1446        mov      r4, r2
+  0x0801c3d6  8318        adds     r3, r0, r2
+  0x0801c3d8  0d46        mov      r5, r1
+
+## 6. Port switch 0x0801b384
+
+r3 selects the callee. r0 is the object.
+
+  r3==0  0x0801b3bc  bl 0x0801ad20
+  r3==1  0x0801b3c8  bl 0x0801ae56
+  r3==2  0x0801b3d6  bl 0x0801ad20   (r2 orr #0x10 first)
+
+0x0801ad20:
+
+  0x0801ad3c  6368        ldr      r3, [r4, #4]
+  0x0801ad40  2068        ldr      r0, [r4]
+  0x0801ad42  9847        blx      r3
+  0x0801ad44  6369        ldr      r3, [r4, #0x14]
+  0x0801ad4a  2069        ldr      r0, [r4, #0x10]
+  0x0801ad4c  9847        blx      r3
+
+0x0801ae56:
+
+  0x0801ae70  e368        ldr      r3, [r4, #0xc]
+  0x0801ae74  a068        ldr      r0, [r4, #8]
+  0x0801ae76  9847        blx      r3
+
+No Thumb pointer to 0x0801ad20 or 0x0801ae56 is stored in the image.
+Sequencer site 0x0801b6f8 uses r3=1, so slot +0xc.
+Key site 0x0801b996 uses r3=0, so slot +4.
+
+## 7. Missing
+
+No bl from the note path targets a function that loads USART1 0x40013800
+or USB 0x40005C00.
+USART1 base is stored at init 0x08018a58 into 0x200055e4.
+USB base is compared at 0x08018b26.
+Which object slot is USB and which is DIN: not identified.

@@ -1,0 +1,379 @@
+STATUS: done
+AGENT: cursor
+TICKET: F
+UPDATED: 2026-09-23T19:25+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; panel_button_dispatch 0x08017260; id_to_index 0x08006024; index_to_id 0x0800606c
+
+# F-buttons — dispatch TBHs, compact index, leftover Shift sites
+# Image: keystep37_1.1.6.579_flash.bin  BASE=0x08000000
+# Capstone Thumb. TBH/TBB payloads are .short/.byte, not lsls.
+# TBH target = (tbh+4) + (half << 1). TBB target = (tbb+4) + (byte << 1).
+# PC-rel lit = ((insn+4) & ~3) + imm.
+
+## 1. id_to_index @ 0x08006024
+
+Returned value is the compact index. Imm not in this chain returns 8.
+
+  0x08006024  5628        cmp      r0, #0x56
+  0x08006026  1dd0        beq      #0x08006064      ; -> movs r0, #1
+  0x08006028  08d9        bls      #0x0800603c
+  0x0800602a  5928        cmp      r0, #0x59
+  0x0800602c  16d0        beq      #0x0800605c      ; -> movs r0, #6
+  0x0800602e  0dd9        bls      #0x0800604c
+  0x08006030  5a28        cmp      r0, #0x5a
+  0x08006032  15d0        beq      #0x08006060      ; -> movs r0, #7
+  0x08006034  6728        cmp      r0, #0x67
+  0x08006036  07d1        bne      #0x08006048      ; else -> movs r0, #8
+  0x08006038  0420        movs     r0, #4
+  0x0800603a  7047        bx       lr
+  0x0800603c  1128        cmp      r0, #0x11
+  0x0800603e  09d0        beq      #0x08006054      ; -> movs r0, #3
+  0x08006040  5528        cmp      r0, #0x55
+  0x08006042  09d0        beq      #0x08006058      ; -> movs r0, #0
+  0x08006044  1028        cmp      r0, #0x10
+  0x08006046  0fd0        beq      #0x08006068      ; -> movs r0, #2
+  0x08006048  0820        movs     r0, #8
+  0x0800604a  7047        bx       lr
+  0x0800604c  5728        cmp      r0, #0x57
+  0x0800604e  fbd1        bne      #0x08006048
+  0x08006050  0520        movs     r0, #5
+  0x0800605c  0620        movs     r0, #6
+  0x08006060  0720        movs     r0, #7
+  0x08006064  0120        movs     r0, #1
+  0x08006068  0220        movs     r0, #2
+
+  imm    index
+  0x55   0
+  0x56   1
+  0x10   2
+  0x11   3
+  0x67   4
+  0x57   5
+  0x59   6
+  0x5a   7
+  other  8
+
+## 2. index_to_id @ 0x0800606c
+
+subs r0, #1 then TBB. After the sub, r0 > 7 takes movs r0, #0x55
+(incoming 0 underflows into that path).
+
+  0x0800606c  0138        subs     r0, #1
+  0x0800606e  0728        cmp      r0, #7
+  0x08006070  05d8        bhi      #0x0800607e
+  0x08006072  dfe800f0    tbb      [pc, r0]
+  0x08006076  14          .byte 0x14    ; slot0 -> 0x0800609e  movs r0, #0x56
+  0x08006077  06          .byte 0x06    ; slot1 -> 0x08006082  movs r0, #0x10
+  0x08006078  08          .byte 0x08    ; slot2 -> 0x08006086  movs r0, #0x11
+  0x08006079  0a          .byte 0x0a    ; slot3 -> 0x0800608a  movs r0, #0x67
+  0x0800607a  0c          .byte 0x0c    ; slot4 -> 0x0800608e  movs r0, #0x57
+  0x0800607b  0e          .byte 0x0e    ; slot5 -> 0x08006092  movs r0, #0x59
+  0x0800607c  10          .byte 0x10    ; slot6 -> 0x08006096  movs r0, #0x5a
+  0x0800607d  12          .byte 0x12    ; slot7 -> 0x0800609a  movs r0, #0x69
+  0x0800607e  5520        movs     r0, #0x55
+
+  in   out
+  0    0x55
+  1    0x56
+  2    0x10
+  3    0x11
+  4    0x67
+  5    0x57
+  6    0x59
+  7    0x5a
+  8    0x69
+
+## 3. panel_button_dispatch @ 0x08017260
+
+r1 is the table index (cmp #8, bhi → pop at 0x08017b0e).
+r2==0 takes a third TBH. Else *0x200010d2 != 0 takes the shifted TBH.
+
+  0x08017260  70b5        push     {r4, r5, r6, lr}
+  0x08017262  92b0        sub      sp, #0x48
+  0x08017264  0446        mov      r4, r0
+  0x08017266  9df85860    ldrb.w   r6, [sp, #0x58]
+  0x0801726a  002a        cmp      r2, #0
+  0x0801726c  00f02e84    beq.w    #0x08017acc       ; r2==0 table
+  0x08017270  1d46        mov      r5, r3
+  0x08017272  a24b        ldr      r3, [pc, #0x288]  ; 0x200010d2
+  0x08017274  1b78        ldrb     r3, [r3]
+  0x08017276  002b        cmp      r3, #0
+  0x08017278  40f0f382    bne.w    #0x08017862       ; shifted table
+  0x0801727c  0829        cmp      r1, #8
+  0x0801727e  00f24684    bhi.w    #0x08017b0e
+  0x08017282  dfe811f0    tbh      [pc, r1, lsl #1]
+
+Common exit:
+
+  0x08017b0e  12b0        add      sp, #0x48
+  0x08017b10  70bd        pop      {r4, r5, r6, pc}
+
+### 3a. Unshifted TBH @ 0x08017282  base 0x08017286
+
+  r1  half    target
+  0   0x02d7  0x08017834
+  1   0x0444  0x08017b0e   pop
+  2   0x0444  0x08017b0e   pop
+  3   0x0444  0x08017b0e   pop
+  4   0x0444  0x08017b0e   pop
+  5   0x02c3  0x0801780c
+  6   0x0009  0x08017298
+  7   0x00dc  0x0801743e
+  8   0x02e8  0x08017856
+
+  0x08017834  934b        ldr      r3, [pc, #0x24c]   ; r1=0
+  0x08017836  1b68        ldr      r3, [r3]
+  0x08017838  974a        ldr      r2, [pc, #0x25c]
+  0x0801783a  1268        ldr      r2, [r2]
+  0x0801783c  9549        ldr      r1, [pc, #0x254]
+  0x0801783e  0968        ldr      r1, [r1]
+  0x08017840  9148        ldr      r0, [pc, #0x244]
+  0x08017842  0068        ldr      r0, [r0]
+  0x08017844  954c        ldr      r4, [pc, #0x254]
+  0x08017846  2468        ldr      r4, [r4]
+  0x08017848  0194        str      r4, [sp, #4]
+  0x0801784a  914c        ldr      r4, [pc, #0x244]
+
+  0x0801780c  9f4b        ldr      r3, [pc, #0x27c]   ; r1=5  lit 0x200010b6
+  0x0801780e  0122        movs     r2, #1
+  0x08017810  1a70        strb     r2, [r3]
+  0x08017812  9f4b        ldr      r3, [pc, #0x27c]   ; 0x20001124
+  0x08017814  1b68        ldr      r3, [r3]
+  0x08017816  db7b        ldrb     r3, [r3, #0xf]
+  0x08017818  9342        cmp      r3, r2
+  0x0801781a  40f07881    bne.w    #0x08017b0e
+  0x0801781e  9d4c        ldr      r4, [pc, #0x274]
+  0x08017820  0521        movs     r1, #5
+  0x08017822  2068        ldr      r0, [r4]
+  0x08017824  05f0c7ff    bl       #0x0801d7b6
+
+  0x08017298  837c        ldrb     r3, [r0, #0x12]    ; r1=6
+  0x0801729a  012b        cmp      r3, #1
+  0x0801729c  35d0        beq      #0x0801730a
+  0x0801729e  022b        cmp      r3, #2
+  0x080172a0  14d1        bne      #0x080172cc
+  0x080172a2  974e        ldr      r6, [pc, #0x25c]
+  0x080172a4  0721        movs     r1, #7
+  0x080172a6  3068        ldr      r0, [r6]
+  0x080172a8  06f085fa    bl       #0x0801d7b6
+
+  0x0801743e  837c        ldrb     r3, [r0, #0x12]    ; r1=7
+  0x08017440  012b        cmp      r3, #1
+  0x08017442  02d1        bne      #0x0801744a
+  0x08017444  037c        ldrb     r3, [r0, #0x10]
+  0x08017446  012b        cmp      r3, #1
+  0x08017448  35d9        bls      #0x080174b6
+  0x0801744a  237c        ldrb     r3, [r4, #0x10]
+  0x0801744c  012b        cmp      r3, #1
+
+  0x08017856  0123        movs     r3, #1             ; r1=8
+  0x08017858  4373        strb     r3, [r0, #0xd]
+  0x0801785a  914b        ldr      r3, [pc, #0x244]
+  0x0801785c  0022        movs     r2, #0
+  0x0801785e  1a70        strb     r2, [r3]
+  0x08017860  55e1        b        #0x08017b0e
+
+### 3b. Shifted TBH @ 0x08017868  base 0x0801786c
+
+Reached from 0x08017278 when *0x200010d2 != 0. Same cmp r1, #8.
+
+  r1  half    target
+  0   0x0009  0x0801787e
+  1   0x0151  0x08017b0e   pop
+  2   0x0151  0x08017b0e   pop
+  3   0x0151  0x08017b0e   pop
+  4   0x0151  0x08017b0e   pop
+  5   0x002e  0x080178c8
+  6   0x001e  0x080178a8
+  7   0x00e4  0x08017a34
+  8   0x00ea  0x08017a40
+
+  0x0801787e  037b        ldrb     r3, [r0, #0xc]     ; r1=0
+  0x08017880  2bb1        cbz      r3, #0x0801788e
+  0x08017882  012b        cmp      r3, #1
+  0x08017884  40f04381    bne.w    #0x08017b0e
+  0x08017888  fff77afc    bl       #0x08017180
+  0x0801788c  3fe1        b        #0x08017b0e
+
+  0x080178c8  c37b        ldrb     r3, [r0, #0xf]     ; r1=5
+  0x080178ca  002b        cmp      r3, #0
+  0x080178cc  00f01f81    beq.w    #0x08017b0e
+  0x080178d0  774b        ldr      r3, [pc, #0x1dc]
+  0x080178d4  93f84930    ldrb.w   r3, [r3, #0x49]
+
+  0x080178a8  c37b        ldrb     r3, [r0, #0xf]     ; r1=6
+  0x080178aa  012b        cmp      r3, #1
+  0x080178ac  40f02f81    bne.w    #0x08017b0e
+  0x080178b0  7d4c        ldr      r4, [pc, #0x1f4]
+  0x080178b2  2068        ldr      r0, [r4]
+  0x080178b4  fbf768ff    bl       #0x08013788
+
+  0x08017a34  0421        movs     r1, #4             ; r1 was 7
+  0x08017a36  244b        ldr      r3, [pc, #0x90]
+  0x08017a38  1868        ldr      r0, [r3]
+  0x08017a3a  faf77bfc    bl       #0x08012334
+  0x08017a3e  66e0        b        #0x08017b0e
+
+  0x08017a40  437d        ldrb     r3, [r0, #0x15]    ; r1=8
+  0x08017a42  022b        cmp      r3, #2
+  0x08017a44  03d0        beq      #0x08017a4e
+  0x08017a46  eff73ffa    bl       #0x08006ec8
+
+### 3c. r2==0 TBH @ 0x08017ad0  base 0x08017ad4
+
+cmp r1, #8 / bhi, so nine entries. Halfwords past r1=8 are not this table
+(they point outside the function). No bl/b in the image targets
+0x08017cac or 0x08017cf0. Those addresses sit inside r1=2 and r1=3.
+
+  0x08017acc  0829        cmp      r1, #8
+  0x08017ace  1ed8        bhi      #0x08017b0e
+  0x08017ad0  dfe811f0    tbh      [pc, r1, lsl #1]
+
+  r1  half    target
+  0   0x0009  0x08017ae6
+  1   0x001f  0x08017b12
+  2   0x00e6  0x08017ca0   body contains 0x08017cac
+  3   0x0108  0x08017ce4   body contains 0x08017cf0
+  4   0x001d  0x08017b0e   pop
+  5   0x0023  0x08017b1a
+  6   0x001d  0x08017b0e   pop
+  7   0x001d  0x08017b0e   pop
+  8   0x0162  0x08017d98
+
+  0x08017b12  944b        ldr      r3, [pc, #0x250]   ; r1=1  lit 0x2000116c
+  0x08017b14  0022        movs     r2, #0
+  0x08017b16  1a70        strb     r2, [r3]
+  0x08017b18  f9e7        b        #0x08017b0e
+
+  0x08017b1a  934b        ldr      r3, [pc, #0x24c]   ; r1=5  lit 0x200010b6
+  0x08017b1c  0022        movs     r2, #0
+  0x08017b1e  1a70        strb     r2, [r3]
+
+r1=2, the 0x08017cac window. First tests *0x20001124+0xf == 1, else pop.
+Then *0x200010d2 == 0 pops. Then *0x2000116c != 0 pops.
+movs r1, #2 and movs r1, #3 here are args to 0x0801d76c, not the table index.
+
+  0x08017ca0  2f4b        ldr      r3, [pc, #0xbc]    ; 0x20001124
+  0x08017ca2  1b68        ldr      r3, [r3]
+  0x08017ca4  db7b        ldrb     r3, [r3, #0xf]
+  0x08017ca6  012b        cmp      r3, #1
+  0x08017ca8  7ff431af    bne.w    #0x08017b0e
+  0x08017cac  384b        ldr      r3, [pc, #0xe0]    ; 0x200010d2
+  0x08017cae  1b78        ldrb     r3, [r3]
+  0x08017cb0  002b        cmp      r3, #0
+  0x08017cb2  3ff42caf    beq.w    #0x08017b0e
+  0x08017cb6  2b4b        ldr      r3, [pc, #0xac]    ; 0x2000116c
+  0x08017cb8  1b78        ldrb     r3, [r3]
+  0x08017cba  002b        cmp      r3, #0
+  0x08017cbc  7ff427af    bne.w    #0x08017b0e
+  0x08017cc0  244d        ldr      r5, [pc, #0x90]    ; 0x20001120
+  0x08017cc2  0022        movs     r2, #0
+  0x08017cc4  0221        movs     r1, #2
+  0x08017cc6  2868        ldr      r0, [r5]
+  0x08017cc8  05f050fd    bl       #0x0801d76c
+  0x08017ccc  0122        movs     r2, #1
+  0x08017cce  0321        movs     r1, #3
+  0x08017cd0  2868        ldr      r0, [r5]
+  0x08017cd2  05f04bfd    bl       #0x0801d76c
+
+r1=3, the 0x08017cf0 window. Same +0xf==1 gate, then *0x200010d2 == 0 pops,
+then *0x2000116c != 0 pops, then *0x200051cc+0x49 == 0 pops.
+
+  0x08017ce4  1e4b        ldr      r3, [pc, #0x78]    ; 0x20001124
+  0x08017ce6  1b68        ldr      r3, [r3]
+  0x08017ce8  db7b        ldrb     r3, [r3, #0xf]
+  0x08017cea  012b        cmp      r3, #1
+  0x08017cec  7ff40faf    bne.w    #0x08017b0e
+  0x08017cf0  274b        ldr      r3, [pc, #0x9c]    ; 0x200010d2
+  0x08017cf2  1b78        ldrb     r3, [r3]
+  0x08017cf4  002b        cmp      r3, #0
+  0x08017cf6  3ff40aaf    beq.w    #0x08017b0e
+  0x08017cfa  1a4b        ldr      r3, [pc, #0x68]    ; 0x2000116c
+  0x08017cfc  1b78        ldrb     r3, [r3]
+  0x08017cfe  002b        cmp      r3, #0
+  0x08017d00  7ff405af    bne.w    #0x08017b0e
+  0x08017d04  1b4b        ldr      r3, [pc, #0x6c]    ; 0x200051cc
+  0x08017d06  93f84930    ldrb.w   r3, [r3, #0x49]
+  0x08017d0a  002b        cmp      r3, #0
+  0x08017d0c  3ff4ffae    beq.w    #0x08017b0e
+  0x08017d10  104d        ldr      r5, [pc, #0x40]    ; 0x20001120
+  0x08017d12  0022        movs     r2, #0
+  0x08017d14  0321        movs     r1, #3
+  0x08017d16  2868        ldr      r0, [r5]
+  0x08017d18  05f028fd    bl       #0x0801d76c
+  0x08017d1c  0122        movs     r2, #1
+  0x08017d1e  0221        movs     r1, #2
+
+  0x08017d98  0023        movs     r3, #0             ; r1=8
+  0x08017d9a  4373        strb     r3, [r0, #0xd]
+
+## 4. B sites 05, 06, 08, 15, 16
+
+No immediate 0x10, 0x11, 0x55, 0x56, 0x57, 0x59, 0x5a, or 0x67 in these
+windows. Compact index is not visible here.
+
+### 05  0x0800cd62   inside key_scan 0x0800cc48
+
+  0x0800cd62  7e4b        ldr      r3, [pc, #0x1f8]  ; 0x200010d2
+  0x0800cd64  1b78        ldrb     r3, [r3]
+  0x0800cd66  002b        cmp      r3, #0
+  0x0800cd68  62d1        bne      #0x0800ce30
+  0x0800cd6a  7d4a        ldr      r2, [pc, #0x1f4]  ; 0x200010b6
+  0x0800cd6c  1278        ldrb     r2, [r2]
+  0x0800cd6e  002a        cmp      r2, #0
+  0x0800cd70  5ed1        bne      #0x0800ce30
+  0x0800cd72  7c4a        ldr      r2, [pc, #0x1f0]  ; 0x20001084
+  0x0800cd74  1278        ldrb     r2, [r2]
+  0x0800cd76  002a        cmp      r2, #0
+  0x0800cd78  5ad1        bne      #0x0800ce30
+
+### 06  0x0800cfd8   inside key_scan 0x0800cc48
+
+  0x0800cfb8  04f05cfc    bl       #0x08011874       ; get_arp_mode
+  0x0800cfbc  0628        cmp      r0, #6
+  0x0800cfbe  7ff450ae    bne.w    #0x0800cc62
+  0x0800cfd0  524b        ldr      r3, [pc, #0x148]  ; 0x20001084
+  0x0800cfd2  1b78        ldrb     r3, [r3]
+  0x0800cfd4  002b        cmp      r3, #0
+  0x0800cfd6  5fd1        bne      #0x0800d098
+  0x0800cfd8  544b        ldr      r3, [pc, #0x150]  ; 0x200010d2
+  0x0800cfda  1b78        ldrb     r3, [r3]
+  0x0800cfdc  7bb1        cbz      r3, #0x0800cffe
+
+### 08  0x08016afc   B containing fn 0x08016ac0
+
+  0x08016afc  324b        ldr      r3, [pc, #0xc8]   ; 0x200010d2
+  0x08016afe  1b78        ldrb     r3, [r3]
+  0x08016b00  ebb1        cbz      r3, #0x08016b3e
+  0x08016b02  037c        ldrb     r3, [r0, #0x10]
+  0x08016b04  13b9        cbnz     r3, #0x08016b0c
+  0x08016b06  c37b        ldrb     r3, [r0, #0xf]
+  0x08016b08  012b        cmp      r3, #1
+  0x08016b0a  02d0        beq      #0x08016b12
+  0x08016b0c  e37b        ldrb     r3, [r4, #0xf]
+  0x08016b0e  002b        cmp      r3, #0
+  0x08016b10  f2d1        bne      #0x08016af8
+  0x08016b12  237b        ldrb     r3, [r4, #0xc]
+  0x08016b14  012b        cmp      r3, #1
+
+### 15  0x0801a078   inside shift_press_fn 0x08019fc4
+
+  0x0801a072  7a4b        ldr      r3, [pc, #0x1e8]  ; 0x200010d6
+  0x0801a074  0122        movs     r2, #1
+  0x0801a076  1a70        strb     r2, [r3]
+  0x0801a078  764b        ldr      r3, [pc, #0x1d8]  ; 0x200010d2
+  0x0801a07a  1d78        ldrb     r5, [r3]
+  0x0801a07c  6db9        cbnz     r5, #0x0801a09a
+  0x0801a07e  784b        ldr      r3, [pc, #0x1e0]  ; 0x200010d0
+  0x0801a080  1e78        ldrb     r6, [r3]
+
+### 16  0x0801a11a   inside shift_press_fn 0x08019fc4
+
+  0x0801a114  524b        ldr      r3, [pc, #0x148]  ; 0x200010d0
+  0x0801a116  0122        movs     r2, #1
+  0x0801a118  1a70        strb     r2, [r3]
+  0x0801a11a  4e4b        ldr      r3, [pc, #0x138]  ; 0x200010d2
+  0x0801a11c  1d78        ldrb     r5, [r3]
+  0x0801a11e  6db9        cbnz     r5, #0x0801a13c
+  0x0801a120  4e4b        ldr      r3, [pc, #0x138]  ; 0x200010d6
+  0x0801a122  1e78        ldrb     r6, [r3]

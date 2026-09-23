@@ -13,6 +13,8 @@ and [`docs/HANDOFF.md`](docs/HANDOFF.md) (resume: understand 1.1.6).
 `firmware-re/notes/findings-2026-09-20.md`.
 
 Propose catalog rows in `model/<ticket>-proposed-catalog.md`. Cursor
-copies accepted P/S rows. Start Wave 1 with `model/prep-islands.md`.
-No git commit unless Jim asked. No flash, no occupancy, no Euclidean
-rebuild.
+copies accepted P/S rows. Queue: `firmware-re/notes/scans/tickets.md`.
+Next: `model/C-loop.md` + `model/C-proposed-catalog.md` from
+`scans/C-loop-irq.txt` (`STATUS: done`). Do not write `scans/` or the
+catalog. No git commit unless Jim asked. No flash, no occupancy, no
+Euclidean rebuild.

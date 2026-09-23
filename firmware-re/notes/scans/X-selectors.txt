@@ -1,0 +1,115 @@
+STATUS: done
+AGENT: cursor
+TICKET: X
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/F-buttons.txt; scans/M-chord.txt
+
+# X-selectors — param_field_dispatch +0x3c and leftover button cases
+
+## 1. Callers of 0x0800f054
+  2  ['0x800fd4e', '0x800ffda']
+### 0x0800fd4e
+  0x0800fd46  b1e6        b        #0x800faac
+  0x0800fd48  3146        mov      r1, r6
+  0x0800fd4a  05f12800    add.w    r0, r5, #0x28
+  0x0800fd4e  fff781f9    bl       #0x800f054
+  0x0800fd52  abe6        b        #0x800faac
+  0x0800fd54  02b0        add      sp, #8
+  0x0800fd56  bde8f087    pop.w    {r4, r5, r6, r7, r8, sb, sl, pc}
+  0x0800fd5a  00bf        nop      
+  0x0800fd5c  2de9f041    push.w   {r4, r5, r6, r7, r8, lr}
+  0x0800fd60  82b0        sub      sp, #8
+
+### 0x0800ffda
+  0x0800ffd2  f0e6        b        #0x800fdb6
+  0x0800ffd4  2946        mov      r1, r5
+  0x0800ffd6  04f12800    add.w    r0, r4, #0x28
+  0x0800ffda  fff73bf8    bl       #0x800f054
+  0x0800ffde  eae6        b        #0x800fdb6
+  0x0800ffe0  2de9f041    push.w   {r4, r5, r6, r7, r8, lr}
+  0x0800ffe4  82b0        sub      sp, #8
+  0x0800ffe6  0446        mov      r4, r0
+  0x0800ffe8  0e46        mov      r6, r1
+  0x0800ffea  1546        mov      r5, r2
+
+## 2. Any `str*` with `#0x3c` (first 12; not all are the dispatch byte)
+  0x08005832  str r3, [sp, #0x3c]
+  0x08007566  str r0, [r4, #0x3c]
+  0x08008ffe  str r1, [r2, #0x3c]
+  0x080091da  str r2, [r4, #0x3c]
+  0x0800932c  str r3, [r4, #0x3c]
+  0x080095fc  str r2, [r0, #0x3c]
+  0x0800a1c8  str r0, [r4, #0x3c]
+  0x0800a2d0  str r0, [r4, #0x3c]
+  0x0800a6b0  strh r4, [r0, #0x3c]
+  0x0800a87c  strh r3, [r0, #0x3c]
+  0x0800abce  strh r2, [r0, #0x3c]
+  0x0800af52  str r2, [r0, #0x3c]
+
+## 3. Unshifted Hold / Stop / Play
+### Hold? F cited 0x08017834
+  0x08017834  934b        ldr      r3, [pc, #0x24c]  ; 0x20001094
+  0x08017836  1b68        ldr      r3, [r3]
+  0x08017838  974a        ldr      r2, [pc, #0x25c]  ; 0x2000111c
+  0x0801783a  1268        ldr      r2, [r2]
+  0x0801783c  9549        ldr      r1, [pc, #0x254]  ; 0x20001120
+  0x0801783e  0968        ldr      r1, [r1]
+  0x08017840  9148        ldr      r0, [pc, #0x244]  ; 0x2000115c
+  0x08017842  0068        ldr      r0, [r0]
+  0x08017844  954c        ldr      r4, [pc, #0x254]  ; 0x20001160
+  0x08017846  2468        ldr      r4, [r4]
+  0x08017848  0194        str      r4, [sp, #4]
+  0x0801784a  914c        ldr      r4, [pc, #0x244]  ; 0x20001124
+  0x0801784c  2468        ldr      r4, [r4]
+  0x0801784e  0094        str      r4, [sp]
+  0x08017850  fdf71df9    bl       #0x8014a8e
+  0x08017854  5be1        b        #0x8017b0e
+  0x08017856  0123        movs     r3, #1
+  0x08017858  4373        strb     r3, [r0, #0xd]
+  0x0801785a  914b        ldr      r3, [pc, #0x244]  ; 0x200010e4
+  0x0801785c  0022        movs     r2, #0
+
+### Stop? 0x08017298
+  0x08017298  837c        ldrb     r3, [r0, #0x12]
+  0x0801729a  012b        cmp      r3, #1
+  0x0801729c  35d0        beq      #0x801730a
+  0x0801729e  022b        cmp      r3, #2
+  0x080172a0  14d1        bne      #0x80172cc
+  0x080172a2  974e        ldr      r6, [pc, #0x25c]  ; 0x20001120
+  0x080172a4  0721        movs     r1, #7
+  0x080172a6  3068        ldr      r0, [r6]
+  0x080172a8  06f085fa    bl       #0x801d7b6
+  0x080172ac  0122        movs     r2, #1
+  0x080172ae  0721        movs     r1, #7
+  0x080172b0  3068        ldr      r0, [r6]
+  0x080172b2  06f05bfa    bl       #0x801d76c
+  0x080172b6  0521        movs     r1, #5
+  0x080172b8  3068        ldr      r0, [r6]
+  0x080172ba  06f07cfa    bl       #0x801d7b6
+  0x080172be  0122        movs     r2, #1
+  0x080172c0  0521        movs     r1, #5
+  0x080172c2  3068        ldr      r0, [r6]
+  0x080172c4  06f052fa    bl       #0x801d76c
+
+### Play? 0x0801743e
+  0x0801743e  837c        ldrb     r3, [r0, #0x12]
+  0x08017440  012b        cmp      r3, #1
+  0x08017442  02d1        bne      #0x801744a
+  0x08017444  037c        ldrb     r3, [r0, #0x10]
+  0x08017446  012b        cmp      r3, #1
+  0x08017448  35d9        bls      #0x80174b6
+  0x0801744a  237c        ldrb     r3, [r4, #0x10]
+  0x0801744c  012b        cmp      r3, #1
+  0x0801744e  00f09980    beq.w    #0x8017584
+  0x08017452  002b        cmp      r3, #0
+  0x08017454  00f03681    beq.w    #0x80176c4
+  0x08017458  022b        cmp      r3, #2
+  0x0801745a  40f05883    bne.w    #0x8017b0e
+  0x0801745e  294b        ldr      r3, [pc, #0xa4]  ; 0x200051cc
+  0x08017460  93f86330    ldrb.w   r3, [r3, #0x63]
+  0x08017464  002b        cmp      r3, #0
+  0x08017466  67d1        bne      #0x8017538
+  0x08017468  264b        ldr      r3, [pc, #0x98]  ; 0x200051cc
+  0x0801746a  93f85130    ldrb.w   r3, [r3, #0x51]
+  0x0801746e  0bb1        cbz      r3, #0x8017474
+

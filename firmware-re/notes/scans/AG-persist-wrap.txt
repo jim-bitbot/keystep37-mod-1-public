@@ -1,0 +1,111 @@
+STATUS: done
+AGENT: cursor
+TICKET: AG
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/V-persist-commit.txt; firmware bin
+
+# AG-persist-wrap — 16 insns of 0x0800ddf6 / 0x08008290 / 0x08008338
+
+# Stop at first 0x40022000 FLASH store. Do not reverse HAL.
+
+## 1. 0x0800ddf6
+
+  0x0800ddf6  movs     r3, #0
+  0x0800ddf8  cmp.w    r3, #0x102
+  0x0800ddfc  bhs      #0x800de0c
+  0x0800ddfe  ldr.w    r0, [r2, r3, lsl #2]
+  0x0800de02  str.w    r0, [r1, r3, lsl #2]
+  0x0800de06  adds     r3, #1
+  0x0800de08  uxth     r3, r3
+  0x0800de0a  b        #0x800ddf8
+  0x0800de0c  bx       lr
+  0x0800de0e  movs     r0, r0
+  0x0800de10  push     {r3, r4, r5, lr}
+  0x0800de12  mov      r4, r0
+  0x0800de14  mov      r5, r1
+  0x0800de16  bl       #0x800dd30
+  0x0800de1a  mov      r2, r0
+  0x0800de1c  ldr      r3, [pc, #0xc]  ; 0x200010fc
+  0x0800de1e  ldr.w    r1, [r3, r5, lsl #2]
+  0x0800de22  mov      r0, r4
+  0x0800de24  bl       #0x800ddf6
+  0x0800de28  pop      {r3, r4, r5, pc}
+
+## 2. 0x08008290
+
+  0x08008290  ldr      r3, [pc, #0x1c]  ; 0x40022000
+  0x08008292  ldr      r3, [r3, #0x10]
+  0x08008294  tst.w    r3, #0x80
+  0x08008298  beq      #0x80082aa
+  0x0800829a  ldr      r3, [pc, #0x14]  ; 0x40022000
+  0x0800829c  ldr      r2, [pc, #0x14]  ; 0x45670123
+  0x0800829e  str      r2, [r3, #4]
+  0x080082a0  add.w    r2, r2, #-0x77777778
+  0x080082a4  str      r2, [r3, #4]
+  0x080082a6  movs     r0, #0
+  0x080082a8  bx       lr
+  0x080082aa  movs     r0, #1
+  0x080082ac  bx       lr
+  0x080082ae  nop      
+  0x080082b0  movs     r0, #0
+  0x080082b2  ands     r2, r0
+  0x080082b4  lsls     r3, r4, #4
+  0x080082b6  cmp      r7, ip
+  0x080082b8  ldr      r2, [pc, #0xc]  ; 0x40022000
+  0x080082ba  ldr      r3, [r2, #0x10]
+
+## 3. 0x08008338
+
+  0x08008338  push.w   {r3, r4, r5, r6, r7, r8, sb, lr}
+  0x0800833c  ldr      r4, [pc, #0x8c]  ; 0x200052b0
+  0x0800833e  ldrb     r4, [r4, #0x18]
+  0x08008340  cmp      r4, #1
+  0x08008342  beq      #0x80083c8
+  0x08008344  mov      r6, r3
+  0x08008346  mov      r8, r2
+  0x08008348  mov      r7, r1
+  0x0800834a  mov      r4, r0
+  0x0800834c  ldr      r3, [pc, #0x7c]  ; 0x200052b0
+  0x0800834e  movs     r2, #1
+  0x08008350  strb     r2, [r3, #0x18]
+  0x08008352  movw     r0, #0xc350
+  0x08008356  bl       #0x80082cc
+  0x0800835a  mov      r3, r0
+  0x0800835c  cbnz     r0, #0x80083bc
+  0x0800835e  cmp      r4, #1
+  0x08008360  beq      #0x80083b6
+  0x08008362  cmp      r4, #2
+  0x08008364  beq      #0x80083b0
+
+## 4. FLASH 0x40022000 pc-rel in those windows
+
+  HIT 0x08008290  ldr r3, [pc, #0x1c]  ; 0x40022000  FLASH
+  HIT 0x0800829a  ldr r3, [pc, #0x14]  ; 0x40022000  FLASH
+  HIT 0x080082b8  ldr r2, [pc, #0xc]  ; 0x40022000  FLASH
+
+## 5. bl-to 0x0800de90 / 0x0800de10 / container of 0x0800e21a
+
+bl-to 0x0800de90: ['0x800e0b0']
+bl-to 0x0800de10: ['0x8015640']
+bl-to 0x0800ddf6: ['0x800de24', '0x800deb6']
+bl-to 0x08008290: ['0x800deba', '0x800df6c', '0x800e2ea', '0x800e320']
+bl-to 0x08008338: ['0x800df2a', '0x800e236', '0x800e26a', '0x800e344']
+
+containing push of 0x0800e21a: 0x0800e15c
+  0x0800e15c  push     {r4, lr}
+  0x0800e15e  sub      sp, #8
+  0x0800e160  mov      r4, r0
+  0x0800e162  movs     r3, #0
+  0x0800e164  strh.w   r3, [sp, #6]
+  0x0800e168  strh.w   r3, [sp, #4]
+  0x0800e16c  strh.w   r3, [sp, #2]
+  0x0800e170  strh.w   r3, [sp]
+  0x0800e174  b        #0x800e1b0
+  0x0800e176  movw     r2, #0xa3a5
+  0x0800e17a  cmp      r3, r2
+  0x0800e17c  beq      #0x800e1fa
+  0x0800e17e  movw     r2, #0xa4a5
+  0x0800e182  cmp      r3, r2
+  0x0800e184  beq      #0x800e1b0
+  0x0800e186  ldrh.w   r3, [sp, #2]
+

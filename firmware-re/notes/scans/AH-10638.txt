@@ -1,0 +1,102 @@
+STATUS: done
+AGENT: cursor
+TICKET: AH
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/C-loop-irq.txt; scans/Q-h-rows.txt; firmware bin
+
+# AH-10638 — containing start of 0x080150a4; Thumb ptrs to 0x08010638
+
+## 1. walk back from 0x080150a4
+
+  0x08015090  subs     r4, r0, #0
+  0x08015092  movs     r0, #0
+  0x08015094  ldr      r3, [pc, #0x18]  ; 0x200010e0
+  0x08015096  ldr      r3, [r3]
+  0x08015098  cbz      r3, #0x80150ae
+  0x0801509a  push     {r4, lr}
+  0x0801509c  mov      r4, r1
+  0x0801509e  mov      r1, r0
+  0x080150a0  ldrh     r2, [r4]
+  0x080150a2  mov      r0, r3
+  0x080150a4  bl       #0x8010638
+  0x080150a8  movs     r3, #0
+  0x080150aa  strh     r3, [r4]
+  0x080150ac  pop      {r4, pc}
+  0x080150ae  bx       lr
+  0x080150b0  asrs     r0, r4, #3
+
+nearest push-lr before 0x080150a4 (stop at bx/pop): 0x801509a
+
+  0x0801509a  push     {r4, lr}
+  0x0801509c  mov      r4, r1
+  0x0801509e  mov      r1, r0
+  0x080150a0  ldrh     r2, [r4]
+  0x080150a2  mov      r0, r3
+  0x080150a4  bl       #0x8010638
+  0x080150a8  movs     r3, #0
+  0x080150aa  strh     r3, [r4]
+  0x080150ac  pop      {r4, pc}
+  0x080150ae  bx       lr
+  0x080150b0  asrs     r0, r4, #3
+  0x080150b2  movs     r0, #0
+  0x080150b4  push     {r3, lr}
+  0x080150b6  movw     r1, #0xffff
+  0x080150ba  movs     r0, #1
+  0x080150bc  bl       #0x8014d08
+
+pushes with lr in 0x08014800–0x080150a4:
+
+  0x08014840  push {r4, r5, lr}
+  0x080148f4  push {r4, r5, lr}
+  0x080149c0  push.w {r4, r5, r6, r7, r8, lr}
+  0x08014a36  push.w {r4, r5, r6, r7, r8, lr}
+  0x08014a8e  push.w {r4, r5, r6, r7, r8, lr}
+  0x08014b04  push.w {r4, r5, r6, r7, r8, lr}
+  0x08014b5c  push {r3, lr}
+  0x08014b64  push {r3, lr}
+  0x08014b6c  push {r3, lr}
+  0x08014b74  push {r3, lr}
+  0x08014b7c  push {r4, lr}
+  0x08014bb0  push {r4, r5, lr}
+  0x08014be8  push {r4, r5, lr}
+  0x08014d08  push.w {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0801509a  push {r4, lr}
+
+## 2. bl-to 0x08010638
+
+count 1 ['0x80150a4']
+
+  0x0801509c  mov      r4, r1
+  0x0801509e  mov      r1, r0
+  0x080150a0  ldrh     r2, [r4]
+  0x080150a2  mov      r0, r3
+  0x080150a4  bl       #0x8010638
+  0x080150a8  movs     r3, #0
+  0x080150aa  strh     r3, [r4]
+  0x080150ac  pop      {r4, pc}
+  0x080150ae  bx       lr
+  0x080150b0  asrs     r0, r4, #3
+
+## 3. Thumb pointers word == 0x08010639
+
+count 0
+
+## 4. 0x08010638 start (Q already)
+
+  0x08010638  push     {r4, r5, r6, r7}
+  0x0801063a  bic      r6, r2, #3
+  0x0801063e  uxth     r6, r6
+  0x08010640  cmp      r6, #0
+  0x08010642  beq      #0x80106ce
+  0x08010644  ldr.w    r3, [r0, #0x144]
+  0x08010648  ldr.w    r2, [r0, #0x140]
+  0x0801064c  cmp      r3, r2
+  0x0801064e  bgt      #0x801065e
+  0x08010650  subs     r3, r2, r3
+  0x08010652  rsb.w    r3, r3, #0x100
+  0x08010656  cmp      r3, #0x4f
+  0x08010658  ble      #0x80106d4
+  0x0801065a  movs     r7, #0
+  0x0801065c  b        #0x80106bc
+  0x0801065e  subs     r3, r3, r2
+

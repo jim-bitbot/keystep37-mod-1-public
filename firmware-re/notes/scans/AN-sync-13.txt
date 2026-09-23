@@ -1,0 +1,80 @@
+STATUS: done
+AGENT: cursor
+TICKET: AN
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/AB-sync-dip.txt; firmware bin
+
+# AN-sync-13 — 0x0800f32a +0x3c=#0x13 and transport_cmd 0x08012334
+
+# AB labelled 0x0800fa64 as transport_cmd — wrong. This file uses 0x08012334.
+
+## 1. 0x0800f32a
+
+  0x0800f318  beq      #0x800f32a
+  0x0800f31a  subs     r3, #0x20
+  0x0800f31c  cmp      r3, #5
+  0x0800f31e  bhi      #0x800f33a
+  0x0800f320  tbb      [pc, r3]
+  0x0800f324  lsls     r7, r0, #0x1c
+  0x0800f326  lsrs     r5, r1, #0x14
+  0x0800f328  lsrs     r1, r1, #4
+  0x0800f32a  movs     r3, #0x13
+  0x0800f32c  strb.w   r3, [r0, #0x3c]
+  0x0800f330  b        #0x800f270
+  0x0800f332  movs     r3, #1
+  0x0800f334  b        #0x800f340
+  0x0800f336  movs     r3, #3
+  0x0800f338  b        #0x800f340
+  0x0800f33a  movs     r3, #0
+  0x0800f33c  b        #0x800f340
+  0x0800f33e  movs     r3, #2
+  0x0800f340  cmp      r3, #2
+  0x0800f342  beq      #0x800f386
+
+## 2. cmp #0x13 after a +0x3c load (param_field_dispatch object)
+
+ldrb/ldr +0x3c windows with cmp #0x13: 0
+
+## 3. transport_cmd 0x08012334
+
+  0x08012334  push     {r4, r5, r6, r7, lr}
+  0x08012336  sub      sp, #0x14
+  0x08012338  mov      r4, r0
+  0x0801233a  mov      r5, r1
+  0x0801233c  ldr      r3, [pc, #0x2f0]  ; 0x20000214
+  0x0801233e  ldr      r3, [r3]
+  0x08012340  cbz      r3, #0x8012358
+  0x08012342  ldr      r3, [pc, #0x2ec]  ; 0x20000214
+  0x08012344  ldr      r6, [r3]
+  0x08012346  cmp      r5, #4
+  0x08012348  bhi      #0x801241e
+  0x0801234a  tbh      [pc, r5, lsl #1]  ; 0x0e01cbf0
+  0x0801234e  lsls     r3, r1, #7
+  0x08012350  movs     r6, r1
+  0x08012352  lsls     r6, r3, #3
+  0x08012354  lsls     r2, r1, #6
+  0x08012356  lsls     r1, r0, #0xa
+  0x08012358  movs     r0, #0xa0
+  0x0801235a  bl       #0x801d862
+  0x0801235e  mov      r6, r0
+  0x08012360  bl       #0x8010b30
+  0x08012364  ldr      r3, [pc, #0x2c8]  ; 0x20000214
+  0x08012366  str      r6, [r3]
+  0x08012368  b        #0x8012342
+
+## 4. pc-rel in 0x08012334–0x08012400
+
+  0x0801233c  ldr r3, [pc, #0x2f0]  ; 0x20000214
+  0x08012342  ldr r3, [pc, #0x2ec]  ; 0x20000214
+  0x0801234a  tbh [pc, r5, lsl #1]  ; 0x0e01cbf0
+  0x08012364  ldr r3, [pc, #0x2c8]  ; 0x20000214
+  0x0801236a  ldr r5, [pc, #0x2c8]  ; 0x20001128
+  0x0801237c  ldr r3, [pc, #0x2b8]  ; 0x200010d8
+  0x08012384  ldr r0, [pc, #0x2b4]  ; 0x20005534
+  0x0801238c  ldr r5, [pc, #0x2b0]  ; 0x200054bc
+  0x08012392  ldr r2, [pc, #0x2b0]  ; 0x200000bc
+  0x08012396  ldr r2, [pc, #0x2b0]  ; 0x200000c4
+  0x080123c4  ldr r1, [pc, #0x27c]  ; 0x200000bc
+  0x080123c8  ldr r1, [pc, #0x27c]  ; 0x200000c4
+  0x080123fa  ldr r3, [pc, #0x250]  ; 0x20001120
+

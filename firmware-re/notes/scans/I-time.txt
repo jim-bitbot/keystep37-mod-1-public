@@ -1,0 +1,186 @@
+STATUS: done
+AGENT: cursor
+TICKET: I
+UPDATED: 2026-09-23T19:50+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; arp_seq_tick 0x080129cc; SysTick 0x08018200; TIM2 0x08018584; timediv_skip_apply 0x08005ab8
+
+# I-time — what advances the step
+# Window 0x080129cc–0x08013040. No Euclidean. Swing RAM: not found in this window.
+
+## 1. arp_seq_tick entry
+
+r4 is the incoming r0. This function does not load 0x20002bec itself.
+
+  0x080129cc  2de9f04f    push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x080129d0  85b0        sub      sp, #0x14
+  0x080129d2  0446        mov      r4, r0
+  0x080129d4  fff736fa    bl       #0x08011e44
+  0x080129d8  0546        mov      r5, r0
+  0x080129da  0646        mov      r6, r0
+  0x080129dc  94f84810    ldrb.w   r1, [r4, #0x48]
+  0x080129e0  2046        mov      r0, r4
+  0x080129e2  fff713fa    bl       #0x08011e0c
+  0x080129e6  0746        mov      r7, r0
+  0x080129e8  e06c        ldr      r0, [r4, #0x4c]
+  0x080129ea  00f0affb    bl       #0x0801314c
+  0x080129ee  4ffa80fa    sxtb.w   sl, r0
+  0x080129f2  237b        ldrb     r3, [r4, #0xc]
+  0x080129f4  022b        cmp      r3, #2
+  0x080129f6  00f0a780    beq.w    #0x08012b48
+
+One caller passes 0x20002bec:
+
+  0x08015768  954c        ldr      r4, [pc, #0x254]  ; 0x20002bec
+  0x0801576a  2046        mov      r0, r4
+  0x0801576c  fdf72ef9    bl       #0x080129cc
+
+## 2. Fields on r4 in this window
+
++0x10 byte (length candidate, not named here):
+  0x08012aa2  0x08012b80  0x08012ba4  0x08012c34  0x08012f0c
+
+  0x08012aa2  237c        ldrb     r3, [r4, #0x10]
+  0x08012aa4  8342        cmp      r3, r0
+  0x08012aa6  04d0        beq      #0x08012ab2
+  0x08012aa8  94f91120    ldrsb.w  r2, [r4, #0x11]
+
++0x38 word:
+  loads  0x08012ae4  0x08012b54  0x08012c1e  0x08012d18
+  store  0x08012eb2
+  byte load of the same slot: 0x08012fc6
+
+  0x08012ae4  a26b        ldr      r2, [r4, #0x38]
+  0x08012ae6  9542        cmp      r5, r2
+  0x08012aea  94f83430    ldrb.w   r3, [r4, #0x34]
+
+  0x08012eaa  94f95530    ldrsb.w  r3, [r4, #0x55]
+  0x08012eae  ab42        cmp      r3, r5
+  0x08012eb0  49d0        beq      #0x08012f46
+  0x08012eb2  c4f83890    str.w    sb, [r4, #0x38]
+
++0x55:
+  stores  0x08012a88  0x08012c88  0x08012cfa  0x08012d08  0x08012f48
+  loads   0x08012a90  0x08012eaa  0x08012f3c
+
+  0x08012a88  84f85550    strb.w   r5, [r4, #0x55]
+  0x08012a8c  84f85430    strb.w   r3, [r4, #0x54]
+  0x08012a90  94f95530    ldrsb.w  r3, [r4, #0x55]
+
+## 3. 0x200051cc offsets inside the tick window
+
+  0x08012a66  +0x49
+  0x08012b48  +0x44
+  0x08012b6e  +0x48
+  0x08012bc8  +0x4f     then str that byte to 0x200000c8
+  0x08012c5a  +0x44
+  0x08012d0e  +0x44
+  0x08012d56  +0x51
+  0x08012d96  +0x44
+  0x08012eca  +0x44
+  0x08012fd6  +0x44
+
+No load of 0x20001000 in this window.
+
+## 4. SysTick 0x08018200
+
+16 insns. Literals 0x20001090, 0x2000528d, 0x20005290.
+No pc-rel of 0x20002bec from here through 0x08018300.
+
+  0x08018200  08b5        push     {r3, lr}
+  0x08018202  eff726fa    bl       #0x08007652
+  0x08018206  354a        ldr      r2, [pc, #0xd4]   ; 0x20001090
+  0x08018208  1368        ldr      r3, [r2]
+  0x0801820a  0133        adds     r3, #1
+  0x0801820c  1360        str      r3, [r2]
+  0x0801820e  344a        ldr      r2, [pc, #0xd0]   ; 0x2000528d
+  0x08018210  1378        ldrb     r3, [r2]
+  0x08018212  591c        adds     r1, r3, #1
+  0x08018214  1170        strb     r1, [r2]
+  0x08018216  082b        cmp      r3, #8
+  0x08018218  52d8        bhi      #0x080182c0
+  0x0801821a  324a        ldr      r2, [pc, #0xc8]   ; 0x20005290
+  0x0801821c  1378        ldrb     r3, [r2]
+  0x0801821e  591c        adds     r1, r3, #1
+  0x08018220  1170        strb     r1, [r2]
+
+## 5. TIM2 0x08018584
+
+No pc-rel of 0x20002bec from here through 0x08018600.
+Loads *0x20001098, calls 0x08012330, then may increment 0x200010de and call 0x08011ee4.
+
+  0x08018584  10b5        push     {r4, lr}
+  0x08018586  0d48        ldr      r0, [pc, #0x34]   ; 0x20005534
+  0x08018588  f2f791fe    bl       #0x0800b2ae
+  0x0801858c  0c4b        ldr      r3, [pc, #0x30]   ; 0x20001098
+  0x0801858e  1868        ldr      r0, [r3]
+  0x08018590  f9f7cefe    bl       #0x08012330
+  0x08018594  10b1        cbz      r0, #0x0801859c
+  0x08018596  0b4b        ldr      r3, [pc, #0x2c]   ; 0x20001158
+  0x08018598  1b78        ldrb     r3, [r3]
+  0x0801859a  03b9        cbnz     r3, #0x0801859e
+  0x0801859c  10bd        pop      {r4, pc}
+  0x0801859e  0a4c        ldr      r4, [pc, #0x28]   ; 0x200010de
+  0x080185a0  2388        ldrh     r3, [r4]
+  0x080185a2  0133        adds     r3, #1
+  0x080185a4  2380        strh     r3, [r4]
+  0x080185a6  064b        ldr      r3, [pc, #0x18]   ; 0x20001098
+  0x080185a8  1868        ldr      r0, [r3]
+  0x080185aa  f9f79bfc    bl       #0x08011ee4
+
+## 6. timediv_skip_apply 0x08005ab8
+
+Caller passes 0x20001000. The ctor immediately before this function stores #8 to +0x6d:
+
+  0x08005aa4  10b5        push     {r4, lr}
+  0x08005aa6  0446        mov      r4, r0
+  0x08005aa8  00f036f8    bl       #0x08005b18
+  0x08005aac  0823        movs     r3, #8
+  0x08005aae  84f86d30    strb.w   r3, [r4, #0x6d]
+  0x08005ab2  2046        mov      r0, r4
+  0x08005ab4  10bd        pop      {r4, pc}
+
+The first +0x6d load (r5) is compared at 0x08005aca with the return of 0x08005ccc.
+The #8 compares are 0x08005ae8 and 0x08005af0. At 0x08005ae8, r0 is the value just stored to +0x6d. At 0x08005af0, r1 is a fresh load of +0x6d.
+
+  0x08015782  9148        ldr      r0, [pc, #0x244]  ; 0x20001000
+  0x08015784  f0f798f9    bl       #0x08005ab8
+
+  0x08005ab8  38b5        push     {r3, r4, r5, lr}
+  0x08005aba  0446        mov      r4, r0
+  0x08005abc  00f0f7f8    bl       #0x08005cae
+  0x08005ac0  94f86d50    ldrb.w   r5, [r4, #0x6d]
+  0x08005ac4  2046        mov      r0, r4
+  0x08005ac6  00f001f9    bl       #0x08005ccc
+  0x08005aca  8542        cmp      r5, r0
+  0x08005acc  02d0        beq      #0x08005ad4
+  0x08005ace  0f4b        ldr      r3, [pc, #0x3c]   ; 0x200010d2
+  0x08005ad0  1b78        ldrb     r3, [r3]
+  0x08005ad2  03b1        cbz      r3, #0x08005ad6
+  0x08005ad4  38bd        pop      {r3, r4, r5, pc}
+  0x08005ad6  2046        mov      r0, r4
+  0x08005ad8  00f0f8f8    bl       #0x08005ccc
+  0x08005adc  84f86d00    strb.w   r0, [r4, #0x6d]
+  0x08005ae0  0b4b        ldr      r3, [pc, #0x2c]   ; 0x200051cc
+  0x08005ae2  93f8b930    ldrb.w   r3, [r3, #0xb9]
+  0x08005ae6  0bb1        cbz      r3, #0x08005aec
+  0x08005ae8  0828        cmp      r0, #8
+  0x08005aea  08d1        bne      #0x08005afe
+  0x08005aec  94f86d10    ldrb.w   r1, [r4, #0x6d]
+  0x08005af0  0829        cmp      r1, #8
+  0x08005af2  efd0        beq      #0x08005ad4
+  0x08005af4  074b        ldr      r3, [pc, #0x1c]   ; 0x20001098
+  0x08005af6  1868        ldr      r0, [r3]
+  0x08005af8  0cf0f6f9    bl       #0x08011ee8
+  0x08005afc  eae7        b        #0x08005ad4
+  0x08005afe  411c        adds     r1, r0, #1
+  0x08005b00  c9b2        uxtb     r1, r1
+  0x08005b02  6820        movs     r0, #0x68
+  0x08005b04  00f006ff    bl       #0x08006914
+  0x08005b08  f0e7        b        #0x08005aec
+
+No separate swing address in this function.
+
+## 7. Missing
+
+Swing RAM: not found in 0x080129cc–0x08013040 or in timediv_skip_apply.
+Time Div as a named field inside arp_seq_tick: not found. The +0x6d byte is on the 0x20001000 object, in timediv_skip_apply only.

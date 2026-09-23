@@ -1,0 +1,147 @@
+STATUS: done
+AGENT: cursor
+TICKET: Z
+UPDATED: 2026-09-23T21:40+01:00
+INPUT: firmware-re/scripts/emulate_ks37.py; scans/R-usbdin.txt; firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# Z-usbdin-emu — Unicorn of emit_key / emit_seq blx
+# Same map as emulate_ks37._emu() plus USART1 0x40013000 and USB 0x40005000.
+# USB ISR 0x08009662 / USB stack body not walked (0x08010e46 would enter 0x080091ca; stopped).
+# No live flash.
+
+Harness: Uc ARM Thumb. Flash at 0x08000000. SRAM 0x20000000 size 0x20000.
+SP 0x2001F000. LR stub 0x0801d358.
+Planted 0x20001d60 from R sweep:
+  +0 / +8 / +0x10 = 0x20007000
+  +4  = 0x08014b7d
+  +0xc = 0x08014bb1
+  +0x14 = 0x08014b6d
+0x20000214 -> 0x20007100 (dummy midi obj, +0=0 +4=16)
+0x200055e4 -> 0x40013800
+0x20005888 -> 0x40005C00
+0x20001178 -> 0x20007200 ring {head=0, tail=8}
+
+r1 MIDI word is little-endian status|note|vel (e.g. 0x007f3c90).
+
+## 1. emit_key 0x0801ad20  r0=0x20001d60  r1=0x7f3c90  r2=1
+
+232 insns. Returned to LR stub. No unmapped fault.
+
+Watch hits:
+  0x08014b7c   (+4 blx)
+  0x08010c10
+  0x08010b5a
+  0x08010aa8
+  0x08010b14   USART leaf
+  0x08010bb4
+  0x08014b6c   (+0x14 blx)
+
+MMIO:
+  R  0x4001380c  PC 0x08010b18
+  W  0x4001380c  = 0x80  PC 0x08010b1e
+
+No USB 0x40005C00. No 0x08009662. No 0x08010e46.
+
+Same MMIO + watch on emit_key r1=0xB040 (non 80/90 generic path).
+
+Without the 0x20001178 ring, emit_key reached 0x08014b7c / 0x08010c10 / 0x08010b5a
+then UC_ERR_READ_UNMAPPED addr 0x4 at PC 0x08010aac (null *0x20001178).
+
+## 2. emit_seq 0x0801ae56  r0=0x20001d60
+
+r1=0x7f3c90 (note-on): 14 insns. UC_ERR_FETCH_UNMAPPED.
+  note-on path 0x0801ae84 loads [r0,#0x1c] / [r0,#0x18] and blx.
+  Those slots are not in the six-word 0x0801acb0 stm. Planted object has 0 there.
+  Did not invent a target. No MMIO.
+
+r1=0xB040 (generic): 26 insns. Watch 0x08014bb0 (+0xc blx).
+  Fault UC_ERR_READ_UNMAPPED addr 0x0 at PC 0x08014bc2
+  (ldr r3,[r4]; ldr r2,[r3] with [dummy+0]=0).
+  No USART/USB MMIO.
+
+## 3. Direct leaves (not emit, identity only)
+
+0x08010b14  (pc-rel 0x200055e4) — mid-fn; previous is 0x08010aa8 after bx lr.
+  Unicorn: R/W USART1 CR1 0x4001380c |= 0x80. Same store emit_key reached.
+
+0x08010e46  ldr r0,[pc] ; 0x20005888
+            bl  0x080091ca
+  That bl is USB stack. Stopped. Did not enter 0x08009662.
+  If started anyway: R 0x40005c50, R 0x40005c00, W 0x40005c00=0x80b0 at 0x0800c20c.
+  Not on the emit_key watch list.
+
+## 4. emit blx sites
+
+  0x0801ad20  push     {r4, r5, r6, lr}
+  0x0801ad22  sub      sp, #0x20
+  0x0801ad24  mov      r4, r0
+  0x0801ad26  str      r1, [sp, #4]
+  0x0801ad28  mov      r5, r2
+  0x0801ad2a  uxtb     r1, r1
+  0x0801ad2c  and      r3, r1, #0xf0
+  0x0801ad30  cmp      r3, #0x90
+  0x0801ad32  beq      #0x801ad52
+  0x0801ad34  cmp      r3, #0x80
+  0x0801ad36  beq      #0x801adea
+  0x0801ad3c  ldr      r3, [r4, #4]
+  0x0801ad3e  ldr      r1, [sp, #4]
+  0x0801ad40  ldr      r0, [r4]
+  0x0801ad42  blx      r3
+  0x0801ad44  ldr      r3, [r4, #0x14]
+  0x0801ad46  ldrsb.w  r1, [sp, #5]
+  0x0801ad4a  ldr      r0, [r4, #0x10]
+  0x0801ad4c  blx      r3
+
+  0x0801ae56  push     {r4, r5, lr}
+  0x0801ae5a  mov      r4, r0
+  0x0801ae5e  mov      r5, r2
+  0x0801ae60  and      r1, r1, #0xf0
+  0x0801ae64  cmp      r1, #0x90
+  0x0801ae66  beq      #0x801ae7c
+  0x0801ae70  ldr      r3, [r4, #0xc]
+  0x0801ae74  ldr      r0, [r4, #8]
+  0x0801ae76  blx      r3
+  0x0801ae7c  ldrsb.w  r3, [sp, #6]
+  0x0801ae84  ldr      r3, [r0, #0x1c]
+  0x0801ae86  ldr      r0, [r0, #0x18]
+  0x0801ae88  blx      r3
+
+## 5. Callees the blx reached
+
+  0x08014b7c  push {r4, lr}
+  0x08014b84  ldr  r3, [pc]          ; 0x20000214
+  0x08014b86  ldr  r3, [r3]
+  0x08014b88  cbz  r3, #0x8014b98
+  0x08014b90  bl   #0x8010c10
+
+  0x08014bb0  push {r4, r5, lr}
+  0x08014bba  ldr  r3, [pc]          ; 0x20000214
+  0x08014bbc  ldr  r3, [r3]
+  0x08014bbe  cbz  r3, #0x8014bd2
+  0x08014bc0  ldr  r3, [r4]
+  0x08014bc2  ldr  r2, [r3]
+  0x08014bca  bl   #0x8010c98
+
+  0x08010aa8  ldr  r3, [pc, #0x7c]   ; 0x20001178
+  0x08010aaa  ldr  r2, [r3]
+  0x08010aac  ldr  r3, [r2, #4]
+  0x08010b14  ldr  r3, [pc, #0x14]   ; 0x200055e4
+  0x08010b16  ldr  r2, [r3]
+  0x08010b18  ldr  r3, [r2, #0xc]
+  0x08010b1a  orr  r3, r3, #0x80
+  0x08010b1e  str  r3, [r2, #0xc]
+  0x08010b20  pop  {r4, r5, r6}
+  0x08010b22  bx   lr
+
+## 6. Slot vs MMIO
+
+emit_key +4  (0x08014b7c → 0x08010c10 → 0x08010b14): USART1 0x4001380c |= 0x80.
+emit_key +0x14 (0x08014b6c): reached after the USART store; R said this is 0x0800d77c display.
+emit_seq +0xc (0x08014bb0 → 0x08010c98): Unicorn reached the thunk, not MMIO (dummy [r0+0]).
+emit_seq +0x18/+0x1c: unplanted; fetch unmapped. Not in 0x0801acb0 six-word copy.
+
+USB object 0x20005888 is not loaded on the emit_key run.
+Unicorn did reach the emit_key blx. DIN leaf is on that path.
+USB vs DIN as two emit slots: USB not seen from emit_key; emit_seq did not reach a peripheral.
+
+Do not invent another static ticket.

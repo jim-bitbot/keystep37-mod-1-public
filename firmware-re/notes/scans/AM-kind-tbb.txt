@@ -1,0 +1,59 @@
+STATUS: done
+AGENT: cursor
+TICKET: AM
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/AC-analog-names.txt; firmware bin
+
+# AM-kind-tbb — raw TBB bytes of knob_index_to_cc
+
+## 1. function
+
+  0x080060a2  subs     r0, #1
+  0x080060a4  cmp      r0, #3
+  0x080060a6  bhi      #0x80060b0
+  0x080060a8  tbb      [pc, r0]
+  0x080060ac  lsls     r2, r1, #0x10
+  0x080060ae  lsrs     r6, r0, #0x20
+  0x080060b0  movs     r0, #0x66
+  0x080060b2  bx       lr
+  0x080060b4  movs     r0, #0x63
+  0x080060b6  bx       lr
+  0x080060b8  movs     r0, #0x64
+  0x080060ba  bx       lr
+  0x080060bc  movs     r0, #0x65
+  0x080060be  bx       lr
+  0x080060c0  movs     r0, #0x62
+  0x080060c2  bx       lr
+  0x080060c4  push     {r3, lr}
+  0x080060c6  ldrsb.w  r3, [r1]
+  0x080060ca  cmp      r3, #8
+  0x080060cc  bne      #0x80060d4
+
+## 2. TBB table at 0x080060ac  4 bytes 0a040608
+
+  index 0  kind 1  byte 0x0a  target 0x080060c0
+  0x080060c0  movs     r0, #0x62
+  0x080060c2  bx       lr
+  0x080060c4  push     {r3, lr}
+  0x080060c6  ldrsb.w  r3, [r1]
+
+  index 1  kind 2  byte 0x04  target 0x080060b4
+  0x080060b4  movs     r0, #0x63
+  0x080060b6  bx       lr
+  0x080060b8  movs     r0, #0x64
+  0x080060ba  bx       lr
+
+  index 2  kind 3  byte 0x06  target 0x080060b8
+  0x080060b8  movs     r0, #0x64
+  0x080060ba  bx       lr
+  0x080060bc  movs     r0, #0x65
+  0x080060be  bx       lr
+
+  index 3  kind 4  byte 0x08  target 0x080060bc
+  0x080060bc  movs     r0, #0x65
+  0x080060be  bx       lr
+  0x080060c0  movs     r0, #0x62
+  0x080060c2  bx       lr
+
+kind 0 and kind>=5 take bhi → 0x080060b0  movs r0,#0x66
+

@@ -1,0 +1,82 @@
+STATUS: done
+AGENT: cursor
+TICKET: M
+UPDATED: 2026-09-23T20:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# M-chord — field stores and the scale halfword
+# No noteval_then_snap notes.
+
+## 1. param_field_dispatch 0x0800f054
+
+  0x0800f05a  90f83c30    ldrb.w   r3, [r0, #0x3c]
+  0x0800f05e  013b        subs     r3, #1
+  0x0800f060  292b        cmp      r3, #0x29
+  0x0800f062  00f20581    bhi.w    #0x0800f270
+  0x0800f066  dfe813f0    tbh      [pc, r3, lsl #1]
+
+Index is [r0,#0x3c] − 1. Byte value is index + 1. Cases that store the three fields:
+
+  byte 0x08  -> 0x0800f2ca
+      ldrsb [r0,#0x44]; subs #0xb; cmp #1; bls -> zero +0x4d/+0x4e/+0x4f/+0x50
+  byte 0x09  -> 0x0800f300  strb r1,[r0,#0x4d]; zero +0x4e/+0x4f/+0x50
+  byte 0x0a  -> 0x0800f422  strb r1,[r0,#0x4e]
+  byte 0x0b  -> 0x0800f4ac  strb r1,[r0,#0x4e]
+  byte 0x0c  -> 0x0800f4b8  strb r1,[r0,#0x4f]
+  byte 0x0d  -> 0x0800f542  strb r1,[r0,#0x4e]
+  byte 0x0e  -> 0x0800f54e  strb r1,[r0,#0x4f]
+  byte 0x16  -> 0x0800f6c0  strb r1,[r0,#0x4d]
+  byte 0x17  -> 0x0800f6cc  strb r1,[r0,#0x4d]
+  byte 0x18  -> 0x0800f6d8  strb r1,[r0,#0x4e]
+  byte 0x19  -> 0x0800f6e4  strb r1,[r0,#0x4d]
+  byte 0x1a  -> 0x0800f6f0  strb r1,[r0,#0x4e]
+  byte 0x1b  -> 0x0800f6fc  strb r1,[r0,#0x4f]
+  byte 0x22  -> 0x0800f300  same as byte 0x09
+
+Zero path:
+
+  0x0800f2e2  0023        movs     r3, #0
+  0x0800f2e4  80f84d30    strb.w   r3, [r0, #0x4d]
+  0x0800f2e8  80f84e30    strb.w   r3, [r0, #0x4e]
+  0x0800f2ec  80f84f30    strb.w   r3, [r0, #0x4f]
+
+Enable-style store:
+
+  0x0800f300  80f84d10    strb.w   r1, [r0, #0x4d]
+  0x0800f304  0023        movs     r3, #0
+  0x0800f306  80f84e30    strb.w   r3, [r0, #0x4e]
+  0x0800f30a  80f84f30    strb.w   r3, [r0, #0x4f]
+
+## 2. Reader of +0x4d
+
+Already in the voice path. cbz on the byte skips the 0x90 packet.
+
+  0x0801bab8  9bf84d30    ldrb.w   r3, [fp, #0x4d]
+  0x0801babc  03b3        cbz      r3, #0x0801bb00
+
+fp there is 0x200051cc (see scans/J-voice.txt). This dispatch writes [r0,+0x4d]. The two objects are not shown to be the same.
+
+## 3. Scale mask 0x20001e3a
+
+No pc-rel literal of 0x20001e3a. The halfword is reached as base + 0x30 + 6.
+
+  0x0800d950  1548        ldr      r0, [pc, #0x54]   ; 0x20001e04
+  0x0800d952  0df012fd    bl       #0x0801b37a
+  0x0800d956  0646        mov      r6, r0
+
+  0x0801b37a  08b5        push     {r3, lr}
+  0x0801b37c  3030        adds     r0, #0x30
+  0x0801b37e  01f077f9    bl       #0x0801c670
+
+  0x0801c670  c088        ldrh     r0, [r0, #6]
+  0x0801c672  7047        bx       lr
+
+0x20001e04 + 0x30 + 6 = 0x20001e3a.
+
+The caller then tests bits 0..11:
+
+  0x0800d96e  0b2c        cmp      r4, #0xb
+  0x0800d972  46fa04f3    asr.w    r3, r6, r4
+  0x0800d976  13f0010f    tst.w    r3, #1
+
+A set bit calls the LED writer 0x0800d26e (0x0800d966 / 0x0800d990).

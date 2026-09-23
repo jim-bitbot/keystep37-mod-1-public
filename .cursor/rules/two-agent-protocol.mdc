@@ -12,5 +12,7 @@ Write **only**: `firmware-re/notes/scans/**`, `firmware-re/scripts/scan_*.py`,
 `firmware-re/notes/address-catalog.md`, and 3–6 HANDOFF ticket-close lines.
 
 Do **not** write `firmware-re/notes/model/**`. Do not commit unless asked.
-No feature patches, no live flash, no occupancy. Wave 1 file:
-`firmware-re/notes/scans/A-boot.txt` only.
+No feature patches, no live flash, no occupancy. Queue:
+`firmware-re/notes/scans/tickets.md`. Next Cursor file:
+`firmware-re/notes/scans/D-analog.txt` (parallel with Claude C-model).
+Do not catalog-copy C until `model/C-proposed-catalog.md` is `STATUS: done`.

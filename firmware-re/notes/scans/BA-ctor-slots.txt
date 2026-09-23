@@ -1,0 +1,57 @@
+STATUS: done
+AGENT: cursor
+TICKET: BA
+UPDATED: 2026-09-23T22:15+01:00
+INPUT: scans/AK-emit-seq-slots.txt; scans/R-usbdin.txt; firmware bin
+
+# BA-ctor-slots — sweep stack words for port_vtable_ctor +0x18/+0x1c
+
+# Ctor frame: sub #8, push {r4,r5}, sub #8 → working sp = caller_sp − 24.
+# ldm [ctor_sp + 0x24] / +0x28  == incoming [sp+0xc] / [sp+0x10] at the bl.
+
+## 1. r8 is tick 0x20002bec and stays
+
+  0x08014ed8  ldr.w    r8, [pc, #0x1ac]  ; 0x20002bec
+  0x08014edc  mov      r0, r8
+  0x08014ede  bl       #0x8011d7c
+
+No later write of r8 before 0x08014f26.
+
+## 2. stack before bl 0x0801acb0
+
+  0x08014f18  str      r6, [sp, #0x28]   ; 0x20001d5c
+  0x08014f1a  ldr      r7, [pc, #0x144]  ; 0x08014b7d
+  0x08014f1c  str      r7, [sp, #0x2c]
+  0x08014f1e  str.w    sl, [sp, #0x38]   ; 0x200013fc
+  0x08014f22  ldr      r3, [pc, #0x140]  ; 0x08014b6d
+  0x08014f24  str      r3, [sp, #0x3c]
+  0x08014f26  str.w    r8, [sp, #0x40]   ; 0x20002bec
+  0x08014f2a  ldr      r3, [pc, #0x13c]  ; 0x08014b75
+  0x08014f2c  str      r3, [sp, #0x44]
+  0x08014f32  add      r3, sp, #0xc
+  0x08014f34  add      r2, sp, #0x40
+  0x08014f36  ldm.w    r2, {r0, r1}
+  0x08014f3a  stm.w    r3, {r0, r1}      ; [sp+0xc]=0x20002bec  [sp+0x10]=0x08014b75
+  0x08014f48  ldr      r3, [pc, #0x120]  ; 0x08014bb1
+  0x08014f4a  str      r3, [sp]
+  0x08014f4c  mov      r3, r6            ; 0x20001d5c
+  0x08014f4e  add      r2, sp, #0x28
+  0x08014f50  ldm      r2, {r1, r2}      ; r1=0x20001d5c  r2=0x08014b7d
+  0x08014f52  mov      r0, sb            ; 0x20001d60
+  0x08014f54  bl       #0x801acb0
+
+## 3. ctor read of those slots (from AK)
+
+  0x0801ace4  add.w    r3, r4, #0x18
+  0x0801ace8  add      r2, sp, #0x24
+  0x0801acea  ldm.w    r2, {r0, r1}
+  0x0801acee  stm.w    r3, {r0, r1}
+
+So +0x18 ← incoming [sp+0xc] = 0x20002bec
+    +0x1c ← incoming [sp+0x10] = 0x08014b75  (Thumb of 0x08014b74)
+
+  0x08014b74  push     {r3, lr}
+  0x08014b76  bl       #0x8011e08
+  0x08014b7a  pop      {r3, pc}
+
+STATUS: done

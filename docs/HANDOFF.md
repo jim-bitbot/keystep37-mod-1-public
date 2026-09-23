@@ -67,6 +67,153 @@ Older “Resume here” sections below are history.
 §5. Cursor: `firmware-re/notes/scans/A-boot.txt`. Claude:
 `firmware-re/notes/model/prep-islands.md`. Do not both edit the catalog.
 
+Ticket A closed: objects 6 (analog kinds 0–4 + strip_b `0x2000039c`).
+`.bss` `0x200001f8`–`0x20005eac`; `0x20005f00` is `0x54` past end. Copied
+A P/S rows; Ghidra names for new function starts. Rejected H:
+`small_indexed_obj_ctor` `0x08019f8c`. Flagged H: `0x08014416` vs
+`seq_step_store` `0x08014418`. Wave 2 scan `B-shift-ram.txt` done (18
+sites). Claude Wave 3: `model/B-shift-handlers.md`.
+
+Ticket B closed: Shift writes `0x0801a032` (set 1) / `0x0801a5a0` (set
+0). Copied B P/S (`notify_013fc`, skip-apply fns). Rejected H:
+`0x0801d76c` as subscribe publish. 5 of 18 sites unmapped. Cursor Wave
+4: `scans/C-loop-irq.txt`.
+
+Parked 2026-09-22 evening. Full queue A–Q:
+`firmware-re/notes/scans/tickets.md` (A/B closed; C scan done).
+Next: Claude `model/C-loop.md` + `C-proposed-catalog.md`.
+Cursor parallel: `scans/D-analog.txt`. No flash, no occupancy.
+
+Ticket C closed: `app_main_loop` `0x080150d0`, `default_irq_stub`
+`0x0801d358`, `SysTick_Handler` `0x08018200`, `usb_isr_common`
+`0x08009662`, `USART1_IRQ` `0x08018624`, `TIM2_IRQ` `0x08018584`,
+`key_scan` `0x0800cc48`. A rejection of `small_indexed_obj_ctor`
+`0x08019f8c` reversed: ctor + nine readers **S**; per-button role still
+**H**. `0x08010638` wiring stays **H** (only caller `0x080150a4`).
+
+Ticket D closed: kinds 0–4 at `0x0800498c` / `0x0800527c` /
+`0x080054c6` / `0x080056cc` / `0x080058cc`, plus `analog_raw_latch`
+`0x08004930`. Panel names unknown (no `0x62`–`0x66`). Strip redirect
+`0x080043c4` → `0x08004428` stores `4` to `0x200010dc` (**S**); MIDI
+skip not shown. No new `recreate.py` names. E and F scans are done.
+
+Ticket E closed: `0x0801b750` has four callers. Three inside `key_scan`
+pass `r2=0`; `0x08010326` passes `r2=1`. Physical/MIDI reading stays
+**H**. Site 04’s function stays unnamed. No new `recreate.py` names.
+
+Ticket F closed: compact map `0x55`→0 … `0x5a`→7, index 8→`0x69`.
+Unshifted Rec is `0x0801780c` (**S**). Shifted gesture names stay **H**.
+B sites 05/06 are inside `key_scan`. `0x08017cac`/`0x08017cf0` are
+r2==0 indexes 2 and 3. Not copied: Hold, Stop, Play windows, B 08/15/16.
+
+Ticket G closed: ctors `subscriber_obj_ctor` `0x0801d6e4`,
+`key_scan_obj_ctor` `0x0800c7f0`, `tick_obj_ctor` `0x08011d7c`,
+`mode_obj_ctor` `0x08005a08`, `timediv_obj_ctor` `0x08005aa4`.
+`0x08014416` is **X** (`bx lr`). Per-button RAM identity stays **H**.
+24 existence-only ctors not copied.
+
+Ticket H closed: `0x200051cc` has 197 loads. Name kept. New offsets
+`+0x44/+0x34/+0x51/+0xbc/+0x4a` and the `+0x54` cluster are **S**
+existence, role **H**. No rename.
+
+Ticket I closed: tick `0x20002bec` fields `+0x38` step, `+0x10` length,
+`+0x55` on that object. SysTick and TIM2 do not pc-rel `0x20002bec`
+in the searched windows. `0x20001000+0x6d` is the Time Div byte.
+Swing not found. The `#8` compares stay out of the catalog; the
+proposed file did not accept them.
+
+Ticket J closed: `port_switch` `0x0801b384`, `port_emit_key`
+`0x0801ad20`, `port_emit_seq` `0x0801ae56`, `seq_send` `0x0801b6c4`.
+`voice_interval_load` and `voice_note_on` are labels inside
+`0x0801b750`; dropped from `recreate.py`. USB vs DIN not named.
+`seq_step_release` callers are `0x08011f40`, `0x0801200a`, `0x08012fcc`.
+
+Ticket K closed: GET TBB `0x0800ee92` (not a function start), siblings
+`get_param_b` `0x0800614c` and `get_param_c` `0x080060c4`. r2!=0 returns.
+Mode/Time Div/Type/Notes/buttons are not cases. Vel/Strum/Rate and
+Seq/Arp stay **H**. `chord_test_dispatch` still has no static caller.
+
+Ticket L closed: `0x08014416` is the inert ctor for `0x200050c0`.
+`seq_step_store` writes `+0x400/+0x401/+0x402`. `rec_armed_flag` is
+`0x200010b6`. Sole caller `0x080065e4`. Rec LED, case 3, and the two
+tail flags not copied.
+
+Ticket M closed: `param_field_dispatch` bytes `0x08`–`0x0e` and
+`0x16`–`0x1b` write `+0x4d/+0x4e/+0x4f`. `+0x50` zeroed on disable,
+role **H**. Scale mask `0x20001e3a` is `0x20001e04+0x36` (**S**).
+Which knob family is which stays **H**.
+
+Ticket N closed: `midi_realtime_dispatch` `0x0800ffe0` on
+`0xFA/0xFC/0xFB/0xF8`. `transport_cmd` `0x08012334`. `0x20005534` is
+shared with TIM2, role **H**. Tap compact 4 is a pop in all three
+button tables. Internal tempo RAM not found. USB vs DIN not named.
+
+Ticket O closed: `0x20001170` stores `0x200004f4` (the Mode object).
+FLASH IRQ `0x080186d4` calls `0x08008140` then `0x0800dd8c`. Object
+identity **H**. No flash-slot `+0x400` access in the searched window.
+
+Ticket P closed: `led_write` `0x0800d26e`, `led_refresh` `0x0800d1f8`.
+DMA1_CH1 `0x080185e8` follows `*0x200010f0` (LED role **H**).
+DMA1_CH2 calls `bx lr` and does not reach the refresh. Rec LED and
+the key-vs-other split not copied.
+
+Ticket Q closed: `pattern_or_order_builder` and `shift_strip_pickup`
+removed from `recreate.py` (labels). `seq_block_promote_pending`
+`0x08013028` added. B site 08 is `0x08016afc`. No letter after Q.
+
+Ticket R closed: chain `0x20001eb8` → `0x20001e04` → `0x20001d60`.
+`port_vtable_ctor` `0x0801acb0`. USB vs DIN not static.
+
+Ticket S closed: `panel_button_dispatch` object is `0x20002ddc`.
+Site 17 Rate stays **H**.
+
+Ticket T closed: `0x20005534` is the TIM2 wrapper. Sibling
+`0x200054bc` is TIM4. No `#0x13` arbitration.
+
+Ticket U closed: no SET TBB. `0x0800ef38` is a pre-check, not SET.
+
+Ticket V closed: FLASH IRQ has no static `bl`. `0x0800de90` writes
+slot `+0x808`. Commit trigger not found in scope.
+
+Ticket W closed: DMA1_CH1 is not LED. Rec LED not in Rec-press or
+the 33 `led_write` callers.
+
+Ticket Y closed: store case 3 is the 32-step bit-7 write; case 6
+writes voice-0 sentinels. `0x08016ac0` is the function. Combo
+`0x200010d0`/`0x200010d6` is not hold-length-clear. No letter after Y.
+
+Ticket Z closed: `emit_key` `+4` is DIN (USART1 CR1). `+0x14` is
+display. USB is `0x08010e46` (mid-fn, not a recreate name). `emit_seq`
+Note-On `+0x18`/`+0x1c` unpopulated by the traced ctor.
+
+Tickets AA/AC/AH/AD copied: tick `+0xe` tempo, `tempo_clamp`
+`0x08012048`, `ring_consume` `0x0801509a`, `sb` is a shift mask.
+Kind 1–4 names and physical-vs-MIDI stay **H**. AK–AQ added.
+
+Tickets AE/AF/AG copied: hold-length-clear still unmapped. No SET
+write path. `0x0800ddf6` is slot load. `flash_unlock` `0x08008290`
+and `flash_busy_guard` `0x08008338` — HAL stop.
+
+Tickets AI/AJ copied: init_array is 6 slots. Wrappers `0x08005e74` /
+`0x08011528` / `0x0801611a`. No `0x200051cc+0x50` reader. AR added
+for the three wrapper targets.
+
+Ticket AB closed: no Sync DIP row. GPIO IDR search is AS.
+
+Tickets AK/AL/AM/AN/AR/AS copied: ctor is 8 words. `ring_consume`
+has no static caller. Kind1–4 → Type/Notes/Vel/Strum. `0x08015f74`
+inits `0x200051cc` (`+0x44=3`). GPIOD object `0x20004f00`. AU–BA added.
+
+Tickets AO/AP/AQ copied: swing table `0x0801ec64`. Rec LED still
+absent. G 08–11 published to four globals.
+
+Parked 2026-09-23 night. A–AS catalog-closed. AT/AU–BA scans done;
+Claude has not written those proposed files. No letter after BA.
+AU: TIM2_IRQ does not touch tick; `0x08011ee4` is `ldrh [r0,#0x2a]`.
+AZ: sole caller of `0x08011ff0` is EXTI0 `0x080183c6` (GPIOD).
+BA: ctor `+0x18`=`0x20002bec`, `+0x1c`=`0x08014b74`. AX dest `+0x401`.
+Tomorrow: Claude models AT+AU–BA; Cursor catalog-copy only.
+
 ## Resume here — 2026-09-22 — cycle harness + occupancy map
 
 **Superseded the same day** by “understand stock 1.1.6.579”. Occupancy

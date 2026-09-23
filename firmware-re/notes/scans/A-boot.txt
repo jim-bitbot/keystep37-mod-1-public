@@ -1,0 +1,374 @@
+STATUS: done
+AGENT: cursor
+TICKET: A
+UPDATED: 2026-09-22T21:40+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; capstone Thumb from 0x08004000 / 0x0801d310 / 0x08014d08 / 0x08004918 / 0x08004768
+
+# A-boot — Reset_Handler .data/.bss, ctor sweep bls, analog r1 kinds
+# Image: keystep37_1.1.6.579_flash.bin  BASE=0x08000000
+# Raw addresses + insns. Names in comments are recreate.py/catalog only.
+
+## 0. Vector @ 0x08004000
+
+  [ 0] 0x08004000 = 0x2000c000   SP
+  [ 1] 0x08004004 = 0x0801d311   Reset_Handler | 1
+  [ 2] 0x08004008 = 0x0801d359
+  [ 3] 0x0800400c = 0x080181f9
+  [15] 0x0800403c = 0x08018201
+
+## 1. Reset_Handler @ 0x0801d310  (full; then bx lr)
+
+  0x0801d310  0021              movs     r1, #0
+  0x0801d312  03e0              b        #0x0801d31c
+  0x0801d314  0b4b              ldr      r3, [pc, #0x2c]  ; 0x0801d344 = 0x0801ef78  flash .data src
+  0x0801d316  5b58              ldr      r3, [r3, r1]
+  0x0801d318  4350              str      r3, [r0, r1]
+  0x0801d31a  0431              adds     r1, #4
+  0x0801d31c  0a48              ldr      r0, [pc, #0x28]  ; 0x0801d348 = 0x20000000  .data RAM start
+  0x0801d31e  0b4b              ldr      r3, [pc, #0x2c]  ; 0x0801d34c = 0x200001f4  .data RAM end
+  0x0801d320  4218              adds     r2, r0, r1
+  0x0801d322  9a42              cmp      r2, r3
+  0x0801d324  f6d3              blo      #0x0801d314
+  0x0801d326  0a4a              ldr      r2, [pc, #0x28]  ; 0x0801d350 = 0x200001f8  .bss start
+  0x0801d328  02e0              b        #0x0801d330
+  0x0801d32a  0023              movs     r3, #0
+  0x0801d32c  42f8043b          str      r3, [r2], #4
+  0x0801d330  084b              ldr      r3, [pc, #0x20]  ; 0x0801d354 = 0x20005eac  .bss end
+  0x0801d332  9a42              cmp      r2, r3
+  0x0801d334  f9d3              blo      #0x0801d32a
+  0x0801d336  e9f773fd          bl       #0x08006e20     RCC/clock (r3 lit 0x40021000)
+  0x0801d33a  00f0c5fa          bl       #0x0801d8c8     libc_init arrays
+  0x0801d33e  f9f77bfa          bl       #0x08016838     post-init / main
+  0x0801d342  7047              bx       lr
+
+literals:
+  0x0801d344  0x0801ef78
+  0x0801d348  0x20000000
+  0x0801d34c  0x200001f4
+  0x0801d350  0x200001f8
+  0x0801d354  0x20005eac
+
+.data: flash 0x0801ef78 -> RAM 0x20000000 .. 0x200001f4  (size 0x1f4)
+.bss:  RAM  0x200001f8 .. 0x20005eac  (zeroed)
+SRAM after .bss end is NOT zeroed. 0x20005f00 is 0x54 past 0x20005eac.
+
+### 1a. libc_init @ 0x0801d8c8
+
+  0x0801d8c8  70b5              push     {r4, r5, r6, lr}
+  0x0801d8ca  0025              movs     r5, #0
+  0x0801d8cc  0c4e              ldr      r6, [pc, #0x30]  ; 0x0801ef58
+  0x0801d8ce  0d4c              ldr      r4, [pc, #0x34]  ; 0x0801ef58
+  0x0801d8d0  a41b              subs     r4, r4, r6       ; first array empty
+  0x0801d8d2  a410              asrs     r4, r4, #2
+  0x0801d8d4  a542              cmp      r5, r4
+  0x0801d8d6  09d1              bne      #0x0801d8ec
+  0x0801d8d8  00f05af9          bl       #0x0801db90
+  0x0801d8dc  0025              movs     r5, #0
+  0x0801d8de  0a4e              ldr      r6, [pc, #0x28]  ; 0x0801ef58
+  0x0801d8e0  0a4c              ldr      r4, [pc, #0x28]  ; 0x0801ef6c
+  0x0801d8e2  a41b              subs     r4, r4, r6       ; 5 words
+  0x0801d8e4  a410              asrs     r4, r4, #2
+  0x0801d8e6  a542              cmp      r5, r4
+  0x0801d8e8  05d1              bne      #0x0801d8f6
+  0x0801d8ea  70bd              pop      {r4, r5, r6, pc}
+  0x0801d8ec  56f82530          ldr.w    r3, [r6, r5, lsl #2]
+  0x0801d8f0  9847              blx      r3
+  0x0801d8f2  0135              adds     r5, #1
+
+init_array 0x0801ef58 .. 0x0801ef6c (Thumb bit set):
+  0x0801ef58  0x08004209
+  0x0801ef5c  0x08005e75
+  0x0801ef60  0x08011529
+  0x0801ef64  0x080150b5   -> wrapper 0x080150b4  (r0=1, r1=0xffff, bl 0x08014d08)
+  0x0801ef68  0x0801611b
+
+wrapper 0x080150b4:
+  0x080150b4  08b5              push     {r3, lr}
+  0x080150b6  4ff6ff71          movw     r1, #0xffff
+  0x080150ba  0120              movs     r0, #1
+  0x080150bc  fff724fe          bl       #0x08014d08
+  0x080150c0  08bd              pop      {r3, pc}
+
+wrapper 0x080150c2 (r0=0; not in the 5-word init_array):
+  0x080150c2  08b5              push     {r3, lr}
+  0x080150c4  4ff6ff71          movw     r1, #0xffff
+  0x080150c8  0020              movs     r0, #0
+  0x080150ca  fff71dfe          bl       #0x08014d08
+  0x080150ce  08bd              pop      {r3, pc}
+
+static bl to 0x08014d08: 0x080150bc, 0x080150ca only.
+
+## 2. Ctor sweep @ 0x08014d08
+
+Gate: r0==1 && r1==0xffff else epilogue. Live path from init_array wrapper.
+Epilogue: 0x08014d12 add sp,#0x54 ; 0x08014d14 pop.w {r4-fp,pc}
+End of body: 0x08014f8a  b #0x08014d12
+53 bls. r0/r1 = last written before each bl (pc-lit resolved; movs #imm copied).
+
+  0x08014d08  2de9f04f          push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x08014d0c  95b0              sub      sp, #0x54
+  0x08014d0e  0128              cmp      r0, #1
+  0x08014d10  02d0              beq      #0x08014d18
+  0x08014d12  15b0              add      sp, #0x54
+  0x08014d14  bde8f08f          pop.w    {r4, r5, r6, r7, r8, sb, sl, fp, pc}
+  0x08014d18  4ff6ff73          movw     r3, #0xffff
+  0x08014d1c  9942              cmp      r1, r3
+  0x08014d1e  f8d1              bne      #0x08014d12
+  0x08014d20  dff85c93          ldr.w    sb, [pc, #0x35c]  ; 0x40011400 GPIOD
+  0x08014d24  0827              movs     r7, #8
+  0x08014d26  0097              str      r7, [sp]
+  0x08014d28  4b46              mov      r3, sb
+  0x08014d2a  3a46              mov      r2, r7
+  0x08014d2c  9749              ldr      r1, [pc, #0x25c]  ; 0x40011800 GPIOE
+  0x08014d2e  9848              ldr      r0, [pc, #0x260]  ; 0x20000410
+  0x08014d30  f7f7ecfc          bl       #0x0800c70c
+
+#   site        dest        r0          r1
+01  0x08014d30  0x0800c70c  0x20000410  0x40011800
+02  0x08014d36  0x0801d35a  0x200023d0  (stale 0x40011800)
+03  0x08014d3e  0x0801d680  0x200023dc  0x200023d0
+04  0x08014d46  0x0801d6e4  0x20002d90  0x200023d0
+05  0x08014d50  0x0800d358  0x200013fc  (r0 from sl)
+06  0x08014d5a  0x08019988  0x20002e88  #0
+07  0x08014d64  0x08019988  0x20002dd0  #0
+08  0x08014d76  0x08006b68  0x20002cdc  #0
+09  0x08014d8e  0x08006bec  0x20002cf8  0x40010800 GPIOA
+10  0x08014d98  0x08006d20  0x20002dbc  #0
+11  0x08014da4  0x080069f8  0x20002e80  #0
+12  0x08014dc4  0x08019178  0x20004f00  0x40011400
+13  0x08014dca  0x080044f4  0x200005f8
+14  0x08014dd2  0x08004768  0x20000468  #0     analog ctor kind 0
+15  0x08014dd8  0x08005a08  0x200004f4  #0
+16  0x08014dde  0x08005aa4  0x20001000  #0
+17  0x08014de4  0x08005cd2  0x2000058c  #0
+18  0x08014dea  0x08004224  0x2000039c  #0     strip-b ctor
+19  0x08014df2  0x08004768  0x2000121c  #1     analog ctor kind 1
+20  0x08014dfa  0x08004768  0x20001294  #2
+21  0x08014e02  0x08004768  0x2000130c  #3
+22  0x08014e0a  0x08004768  0x20001384  #4
+23  0x08014e10  0x08019f4e  0x200011dc
+24  0x08014e1a  0x08019f8c  0x20000388  #0     small obj; strb r1,[r0,#0xd]
+25  0x08014e24  0x08019f8c  0x20000564  #1
+26  0x08014e2e  0x08019f8c  0x2000042c  #2
+27  0x08014e38  0x08019f8c  0x20000440  #3
+28  0x08014e42  0x08019f8c  0x200005e4  #4
+29  0x08014e4c  0x08019f8c  0x200004e0  #5
+30  0x08014e56  0x08019f8c  0x20000578  #6
+31  0x08014e60  0x08019f8c  0x20000454  #7
+32  0x08014e6a  0x08019f8c  0x20000374  #8
+33  0x08014e70  0x0800c7f0  0x20000674
+34  0x08014e98  0x0800c486  0x20000fec  #3
+35  0x08014ebc  0x0800c486  0x20000654  #3
+36  0x08014ec2  0x0800ecd4  0x20002cec
+37  0x08014ec8  0x0801306c  0x20002c4c
+38  0x08014ece  0x08014416  0x200050c0
+39  0x08014ed4  0x08013e40  0x20004ed4
+40  0x08014ede  0x08011d7c  0x20002bec
+41  0x08014ee4  0x08019274  0x20004f18
+42  0x08014eea  0x08013c9a  0x20002dfc
+43  0x08014ef0  0x08013c9a  0x20002d0c
+44  0x08014ef6  0x0801161c  0x2000063c
+45  0x08014efc  0x080168e8  0x20002ddc
+46  0x08014f02  0x0800dd04  0x200007dc
+47  0x08014f08  0x08014758  0x20000668
+48  0x08014f0e  0x08010748  0x200023f8
+49  0x08014f54  0x0801acb0  0x20001d60
+50  0x08014f64  0x0801b02c  0x20001e04  r1=0x20001d60
+51  0x08014f6c  0x0801b572  0x20001eb8  r1=0x20001e04
+52  0x08014f76  0x08014be8  0x20001180  r1=0x08006ec9
+53  0x08014f86  0x08011536  0x20001204
+    0x08014f8a  c2e6              b        #0x08014d12
+
+Known RAM from this sweep (r0 of a bl, or noted):
+  0x20000374 0x20000388 0x2000039c 0x20000410 0x2000042c 0x20000440
+  0x20000454 0x20000468 0x200004e0 0x200004f4 0x20000564 0x20000578
+  0x2000058c 0x200005e4 0x200005f8 0x2000063c 0x20000654 0x20000668
+  0x20000674 0x200007dc 0x20000fec 0x20001000 0x20001180 0x200011dc
+  0x20001204 0x2000121c 0x20001294 0x2000130c 0x20001384 0x200013fc
+  0x20001d60 0x20001e04 0x20001eb8 0x200023d0 0x200023dc 0x200023f8
+  0x20002bec 0x20002c4c 0x20002cdc 0x20002cec 0x20002cf8 0x20002d0c
+  0x20002d90 0x20002dbc 0x20002dd0 0x20002ddc 0x20002dfc 0x20002e80
+  0x20002e88 0x20004ed4 0x20004f00 0x20004f18 0x200050c0
+also str #0 to 0x200050c4 and +4 (site 0x08014d68).
+
+Peripherals in r1/sb: 0x40010800 GPIOA, 0x40011400 GPIOD, 0x40011800 GPIOE, 0x40021000 RCC (reset_bl1).
+
+## 3. Analog r1 kinds
+
+Ctor 0x08004768 stores incoming r1 to object+0x58 (byte). Process 0x08004918 does not take a kind in r1; it ldrb [obj,#0x58].
+
+### 3a. analog ctor 0x08004768
+
+  0x08004768  38b5              push     {r3, r4, r5, lr}
+  0x0800476a  0446              mov      r4, r0
+  0x0800476c  0d46              mov      r5, r1
+  0x0800476e  0430              adds     r0, #4
+  0x08004770  fff77fff          bl       #0x08004672
+  0x08004774  144b              ldr      r3, [pc, #0x50]  ; 0x0801dee4  vptr
+  0x08004776  2360              str      r3, [r4]
+  0x08004778  84f85850          strb.w   r5, [r4, #0x58]   ; kind = r1
+  0x0800477c  0023              movs     r3, #0
+  0x0800477e  84f85930          strb.w   r3, [r4, #0x59]
+  0x08004782  84f85a30          strb.w   r3, [r4, #0x5a]
+  0x08004786  a4f85c30          strh.w   r3, [r4, #0x5c]
+  0x0800478a  a4f85e30          strh.w   r3, [r4, #0x5e]
+  0x0800478e  0722              movs     r2, #7
+  0x08004790  84f86020          strb.w   r2, [r4, #0x60]
+
+five call sites, all from ctor sweep:
+
+  kind  RAM         call site
+  0     0x20000468  0x08014dd2  mov r1,r5 ; r5=0
+  1     0x2000121c  0x08014df2  mov r1,r8 ; r8=1
+  2     0x20001294  0x08014dfa  mov r1,r6 ; r6=2
+  3     0x2000130c  0x08014e02  movs r1,#3
+  4     0x20001384  0x08014e0a  mov r1,fp ; fp=4
+
+  0x08014dce  2946              mov      r1, r5
+  0x08014dd0  7d48              ldr      r0, [pc, #0x1f4]  ; 0x20000468
+  0x08014dd2  eff7c9fc          bl       #0x08004768
+  0x08014dee  4146              mov      r1, r8
+  0x08014df0  7a48              ldr      r0, [pc, #0x1e8]  ; 0x2000121c
+  0x08014df2  eff7b9fc          bl       #0x08004768
+  0x08014df6  3146              mov      r1, r6
+  0x08014df8  7948              ldr      r0, [pc, #0x1e4]  ; 0x20001294
+  0x08014dfa  eff7b5fc          bl       #0x08004768
+  0x08014dfe  0321              movs     r1, #3
+  0x08014e00  7848              ldr      r0, [pc, #0x1e0]  ; 0x2000130c
+  0x08014e02  eff7b1fc          bl       #0x08004768
+  0x08014e06  5946              mov      r1, fp
+  0x08014e08  7748              ldr      r0, [pc, #0x1dc]  ; 0x20001384
+  0x08014e0a  eff7adfc          bl       #0x08004768
+
+### 3b. analog_knob_process 0x08004918  (kind from +0x58, not r1)
+
+static bl: 0x08015778, 0x08015790, 0x08015796, 0x0801579c, 0x080157a2
+r0 at those: 0x20000468, 0x2000121c, 0x20001294, 0x2000130c, 0x20001384
+(same five objects)
+
+  0x08004918  2de9f04f          push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0800491c  97b0              sub      sp, #0x5c
+  0x0800491e  0446              mov      r4, r0
+  0x08004920  fff7b6ff          bl       #0x08004890
+  0x08004924  94f85a20          ldrb.w   r2, [r4, #0x5a]
+  0x08004928  94f85930          ldrb.w   r3, [r4, #0x59]
+  0x0800492c  9a42              cmp      r2, r3
+  0x0800492e  2ad0              beq      #0x08004986      unchanged -> return
+  0x08004930  84f85a30          strb.w   r3, [r4, #0x5a]
+  0x08004934  a84a              ldr      r2, [pc, #0x2a0]  ; 0x200051cc
+  0x08004936  92f8b920          ldrb.w   r2, [r2, #0xb9]   ; AutoTest
+  0x0800493a  dab9              cbnz     r2, #0x08004974
+  0x0800493c  94f85850          ldrb.w   r5, [r4, #0x58]
+  0x08004940  25b3              cbz      r5, #0x0800498c  ; kind 0
+  0x08004942  a64a              ldr      r2, [pc, #0x298]  ; 0x20001124
+  0x08004944  1068              ldr      r0, [r2]
+  0x08004946  427d              ldrb     r2, [r0, #0x15]
+  0x08004948  012a              cmp      r2, #1
+  0x0800494a  00f04d82          beq.w    #0x08004de8
+  0x0800494e  022a              cmp      r2, #2
+  0x08004950  00f0ad83          beq.w    #0x080050ae
+  0x08004954  bab9              cbnz     r2, #0x08004986
+  0x08004956  12f049fc          bl       #0x080171ec
+  0x0800495a  0546              mov      r5, r0
+  0x0800495c  98b1              cbz      r0, #0x08004986
+  0x0800495e  94f85830          ldrb.w   r3, [r4, #0x58]
+  0x08004962  013b              subs     r3, #1            ; kind 1..4 -> 0..3
+  0x08004964  032b              cmp      r3, #3
+  0x08004966  0ed8              bhi      #0x08004986
+  0x08004968  dfe813f0          tbh      [pc, r3, lsl #1]
+  ; table @ 0x0800496c  halfwords 0x0488, 0x05ad, 0x06b0, 0x07b0
+  ; dest = 0x0800496c + 2*hw
+  kind 1 -> 0x0800527c
+  kind 2 -> 0x080054c6
+  kind 3 -> 0x080056cc
+  kind 4 -> 0x080058cc
+  AutoTest path 0x08004974: ldrb r0,[r4,#0x58] ; bl knob_index_to_cc 0x080060a2 ; bl test20_cc_value 0x080068c8
+
+kind 0 @ 0x0800498c:
+  0x0800498c  944b              ldr      r3, [pc, #0x250]  ; 0x20001098
+  0x0800498e  1868              ldr      r0, [r3]
+  0x08004990  0df0cefc          bl       #0x08012330
+  0x08004994  0028              cmp      r0, #0
+  0x08004996  f6d1              bne      #0x08004986
+  0x08004998  924b              ldr      r3, [pc, #0x248]  ; 0x200010d2 Shift
+  0x0800499a  1d78              ldrb     r5, [r3]
+  0x0800499c  002d              cmp      r5, #0
+  0x0800499e  40f02b81          bne.w    #0x08004bf8      ; shift_strip_pickup
+  0x080049a2  94f85920          ldrb.w   r2, [r4, #0x59]
+  0x080049a6  45f6c051          movw     r1, #0x5dc0
+
+kind 1 TBH @ 0x0800527c:
+  0x0800527c  2d48              ldr      r0, [pc, #0xb4]  ; 0x20001e04
+  0x0800527e  15f0e2ff          bl       #0x0801b246
+  0x08005282  07b2              sxth     r7, r0
+  0x08005284  0d21              movs     r1, #0xd
+  0x08005286  2046              mov      r0, r4
+  0x08005288  fff736fb          bl       #0x080048f8
+  0x0800528c  06b2              sxth     r6, r0
+  0x0800528e  04f16803          add.w    r3, r4, #0x68
+
+kind 2 TBH @ 0x080054c6:
+  0x080054c6  7e48              ldr      r0, [pc, #0x1f8]  ; 0x20001e04
+  0x080054c8  15f0c2fe          bl       #0x0801b250
+  0x080054cc  06b2              sxth     r6, r0
+  0x080054ce  0f21              movs     r1, #0xf
+  0x080054d0  2046              mov      r0, r4
+  0x080054d2  fff711fa          bl       #0x080048f8
+
+kind 3 TBH @ 0x080056cc:
+  0x080056cc  ad48              ldr      r0, [pc, #0x2b4]  ; 0x20001e04
+  0x080056ce  15f0d3fd          bl       #0x0801b278
+  0x080056d2  07b2              sxth     r7, r0
+  0x080056d4  8021              movs     r1, #0x80
+  0x080056d6  2046              mov      r0, r4
+  0x080056d8  fff70ef9          bl       #0x080048f8
+
+kind 4 TBH @ 0x080058cc:
+  0x080058cc  94f85930          ldrb.w   r3, [r4, #0x59]
+  0x080058d0  d909              lsrs     r1, r3, #7
+  0x080058d2  2c4a              ldr      r2, [pc, #0xb0]  ; 0x20001e04
+  0x080058d4  82f85010          strb.w   r1, [r2, #0x50]
+  0x080058d8  1ab2              sxth     r2, r3
+  0x080058da  882a              cmp      r2, #0x88
+  0x080058dc  07dc              bgt      #0x080058ee
+  0x080058de  772a              cmp      r2, #0x77
+
+### 3c. other strip ctor 0x08004224  RAM 0x2000039c  (bl 18)
+
+  0x08004224  10b5              push     {r4, lr}
+  0x08004226  0446              mov      r4, r0
+  0x08004228  00f023fa          bl       #0x08004672
+  0x0800422c  0023              movs     r3, #0
+  0x0800422e  84f85430          strb.w   r3, [r4, #0x54]
+  0x08004232  84f85530          strb.w   r3, [r4, #0x55]
+  0x08004236  84f85630          strb.w   r3, [r4, #0x56]
+  0x0800423a  a4f85830          strh.w   r3, [r4, #0x58]
+  0x0800423e  a4f85a30          strh.w   r3, [r4, #0x5a]
+
+static bl to strip_process_b 0x08004388: 0x080157d0 only (not the analog five).
+
+### 3d. 0x08019f8c  (bls 24–32)  r1 stored at +0xd, r2 at +0xe
+
+  0x08019f8c  30b4              push     {r4, r5}
+  0x08019f8e  0024              movs     r4, #0
+  0x08019f90  0460              str      r4, [r0]
+  0x08019f94  0472              strb     r4, [r0, #8]
+  0x08019f9a  0125              movs     r5, #1
+  0x08019f9c  c572              strb     r5, [r0, #0xb]
+  0x08019fa0  4173              strb     r1, [r0, #0xd]
+  0x08019fa2  8273              strb     r2, [r0, #0xe]
+  0x08019fa8  30bc              pop      {r4, r5}
+  0x08019faa  7047              bx       lr
+
+r1 at those calls is 0..8 matching RAM list in §2.
+
+## 4. Clock bl1 @ 0x08006e20 (Reset)
+
+  0x08006e20  0e4b              ldr      r3, [pc, #0x38]  ; 0x40021000
+  0x08006e22  1a68              ldr      r2, [r3]
+  0x08006e24  42f00102          orr      r2, r2, #1
+  0x08006e28  1a60              str      r2, [r3]
+  0x08006e2a  5968              ldr      r1, [r3, #4]
+  0x08006e2c  0c4a              ldr      r2, [pc, #0x30]  ; 0xf8ff0000
+  0x08006e2e  0a40              ands     r2, r1
+  0x08006e30  5a60              str      r2, [r3, #4]

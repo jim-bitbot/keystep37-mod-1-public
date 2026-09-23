@@ -1,0 +1,274 @@
+STATUS: done
+AGENT: cursor
+TICKET: D
+UPDATED: 2026-09-23T19:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; analog_knob_process 0x08004918; strip_process_b 0x08004388
+
+# D-analog — analog_knob_process kinds 0–4, strip_process_b Shift skip
+# Image: keystep37_1.1.6.579_flash.bin  BASE=0x08000000
+# Capstone Thumb. TBH halfwords shown as .short (Capstone prints them as lsls).
+# PC-rel: lit = ((insn+4) & ~3) + imm. bl-to via scan_firmware.py.
+
+## 1. analog_knob_process @ 0x08004918  (prologue through TBH)
+
+Kind byte is +0x58. Kind 0 is the cbz at 0x08004940 (not a TBH slot).
+TBH at 0x08004968 uses r3 = (+0x58 - 1), cmp #3, bhi skip. Base = 0x0800496c.
+target = base + (half << 1).
+
+  0x08004918  2de9f04f    push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0800491c  97b0        sub      sp, #0x5c
+  0x0800491e  0446        mov      r4, r0
+  0x08004920  fff7b6ff    bl       #0x08004890
+  0x08004924  94f85a20    ldrb.w   r2, [r4, #0x5a]
+  0x08004928  94f85930    ldrb.w   r3, [r4, #0x59]
+  0x0800492c  9a42        cmp      r2, r3
+  0x0800492e  2ad0        beq      #0x08004986
+  0x08004930  84f85a30    strb.w   r3, [r4, #0x5a]
+  0x08004934  a84a        ldr      r2, [pc, #0x2a0]   ; 0x08004bd8 = 0x200051cc
+  0x08004936  92f8b920    ldrb.w   r2, [r2, #0xb9]
+  0x0800493a  dab9        cbnz     r2, #0x08004974
+  0x0800493c  94f85850    ldrb.w   r5, [r4, #0x58]
+  0x08004940  25b3        cbz      r5, #0x0800498c     ; kind 0
+  0x08004942  a64a        ldr      r2, [pc, #0x298]   ; 0x08004bdc = 0x20001124
+  0x08004944  1068        ldr      r0, [r2]
+  0x08004946  427d        ldrb     r2, [r0, #0x15]
+  0x08004948  012a        cmp      r2, #1
+  0x0800494a  00f04d82    beq.w    #0x08004de8
+  0x0800494e  022a        cmp      r2, #2
+  0x08004950  00f0ad83    beq.w    #0x080050ae
+  0x08004954  bab9        cbnz     r2, #0x08004986
+  0x08004956  12f049fc    bl       #0x080171ec
+  0x0800495a  0546        mov      r5, r0
+  0x0800495c  98b1        cbz      r0, #0x08004986
+  0x0800495e  94f85830    ldrb.w   r3, [r4, #0x58]
+  0x08004962  013b        subs     r3, #1
+  0x08004964  032b        cmp      r3, #3
+  0x08004966  0ed8        bhi      #0x08004986
+  0x08004968  dfe813f0    tbh      [pc, r3, lsl #1]
+  0x0800496c  8804        .short   0x0488            ; r3=0 kind 1 -> 0x0800527c
+  0x0800496e  ad05        .short   0x05ad            ; r3=1 kind 2 -> 0x080054c6
+  0x08004970  b006        .short   0x06b0            ; r3=2 kind 3 -> 0x080056cc
+  0x08004972  b007        .short   0x07b0            ; r3=3 kind 4 -> 0x080058cc
+
+Early exit / AutoTest emit (cbnz target), then pop:
+
+  0x08004974  94f85800    ldrb.w   r0, [r4, #0x58]
+  0x08004978  01f093fb    bl       #0x080060a2       ; knob_index_to_cc
+  0x0800497c  94f85910    ldrb.w   r1, [r4, #0x59]
+  0x08004980  4910        asrs     r1, r1, #1
+  0x08004982  01f0a1ff    bl       #0x080068c8       ; test20_cc_value
+  0x08004986  17b0        add      sp, #0x5c
+  0x08004988  bde8f08f    pop.w    {r4, r5, r6, r7, r8, sb, sl, fp, pc}
+
+## 2. Kind targets (20 insns)
+
+### kind 0  +0x58==0  @ 0x0800498c
+
+  0x0800498c  944b        ldr      r3, [pc, #0x250]   ; 0x08004be0 = 0x20001098
+  0x0800498e  1868        ldr      r0, [r3]
+  0x08004990  0df0cefc    bl       #0x08012330
+  0x08004994  0028        cmp      r0, #0
+  0x08004996  f6d1        bne      #0x08004986
+  0x08004998  924b        ldr      r3, [pc, #0x248]   ; 0x08004be4 = 0x200010d2
+  0x0800499a  1d78        ldrb     r5, [r3]
+  0x0800499c  002d        cmp      r5, #0
+  0x0800499e  40f02b81    bne.w    #0x08004bf8
+  0x080049a2  94f85920    ldrb.w   r2, [r4, #0x59]
+  0x080049a6  45f6c051    movw     r1, #0x5dc0
+  0x080049aa  01fb02f1    mul      r1, r1, r2
+  0x080049ae  8e4b        ldr      r3, [pc, #0x238]
+  0x080049b0  83fb0106    smull    r0, r6, r3, r1
+  0x080049b4  3144        add      r1, r6
+  0x080049b6  40f6b836    movw     r6, #0xbb8
+  0x080049ba  06fb02f2    mul      r2, r6, r2
+  0x080049be  83fb0236    smull    r3, r6, r3, r2
+  0x080049c2  1644        add      r6, r2
+  0x080049c4  f611        asrs     r6, r6, #7
+
+### kind 1  TBH r3=0  @ 0x0800527c
+
+  0x0800527c  2d48        ldr      r0, [pc, #0xb4]
+  0x0800527e  15f0e2ff    bl       #0x0801b246
+  0x08005282  07b2        sxth     r7, r0
+  0x08005284  0d21        movs     r1, #0xd
+  0x08005286  2046        mov      r0, r4
+  0x08005288  fff736fb    bl       #0x080048f8
+  0x0800528c  06b2        sxth     r6, r0
+  0x0800528e  04f16803    add.w    r3, r4, #0x68
+  0x08005292  b4f96800    ldrsh.w  r0, [r4, #0x68]
+  0x08005296  a4f86860    strh.w   r6, [r4, #0x68]
+  0x0800529a  9a68        ldr      r2, [r3, #8]
+  0x0800529c  02f0010e    and      lr, r2, #1
+  0x080052a0  42f00102    orr      r2, r2, #1
+  0x080052a4  9a60        str      r2, [r3, #8]
+  0x080052a6  3a46        mov      r2, r7
+  0x080052a8  197b        ldrb     r1, [r3, #0xc]
+  0x080052aa  0029        cmp      r1, #0
+  0x080052ac  00f0a480    beq.w    #0x080053f8
+  0x080052b0  d3f804c0    ldr.w    ip, [r3, #4]
+  0x080052b4  1cf0010f    tst.w    ip, #1
+
+### kind 2  TBH r3=1  @ 0x080054c6
+
+  0x080054c6  7e48        ldr      r0, [pc, #0x1f8]
+  0x080054c8  15f0c2fe    bl       #0x0801b250
+  0x080054cc  06b2        sxth     r6, r0
+  0x080054ce  0f21        movs     r1, #0xf
+  0x080054d0  2046        mov      r0, r4
+  0x080054d2  fff711fa    bl       #0x080048f8
+  0x080054d6  83b2        uxth     r3, r0
+  0x080054d8  0233        adds     r3, #2
+  0x080054da  9bb2        uxth     r3, r3
+  0x080054dc  1fb2        sxth     r7, r3
+  0x080054de  04f16801    add.w    r1, r4, #0x68
+  0x080054e2  b4f96800    ldrsh.w  r0, [r4, #0x68]
+  0x080054e6  a4f86870    strh.w   r7, [r4, #0x68]
+  0x080054ea  8a68        ldr      r2, [r1, #8]
+  0x080054ec  02f00108    and      r8, r2, #1
+  0x080054f0  42f00102    orr      r2, r2, #1
+  0x080054f4  8a60        str      r2, [r1, #8]
+  0x080054f6  b446        mov      ip, r6
+  0x080054f8  0a7b        ldrb     r2, [r1, #0xc]
+
+### kind 3  TBH r3=2  @ 0x080056cc
+
+  0x080056cc  ad48        ldr      r0, [pc, #0x2b4]
+  0x080056ce  15f0d3fd    bl       #0x0801b278
+  0x080056d2  07b2        sxth     r7, r0
+  0x080056d4  8021        movs     r1, #0x80
+  0x080056d6  2046        mov      r0, r4
+  0x080056d8  fff70ef9    bl       #0x080048f8
+  0x080056dc  06b2        sxth     r6, r0
+  0x080056de  04f16802    add.w    r2, r4, #0x68
+  0x080056e2  b4f96800    ldrsh.w  r0, [r4, #0x68]
+  0x080056e6  a4f86860    strh.w   r6, [r4, #0x68]
+  0x080056ea  9368        ldr      r3, [r2, #8]
+  0x080056ec  03f0010e    and      lr, r3, #1
+  0x080056f0  43f00103    orr      r3, r3, #1
+  0x080056f4  9360        str      r3, [r2, #8]
+  0x080056f6  3b46        mov      r3, r7
+  0x080056f8  117b        ldrb     r1, [r2, #0xc]
+  0x080056fa  0029        cmp      r1, #0
+  0x080056fc  00f09580    beq.w    #0x0800582a
+  0x08005700  d2f804c0    ldr.w    ip, [r2, #4]
+
+### kind 4  TBH r3=3  @ 0x080058cc
+
+  0x080058cc  94f85930    ldrb.w   r3, [r4, #0x59]
+  0x080058d0  d909        lsrs     r1, r3, #7
+  0x080058d2  2c4a        ldr      r2, [pc, #0xb0]
+  0x080058d4  82f85010    strb.w   r1, [r2, #0x50]
+  0x080058d8  1ab2        sxth     r2, r3
+  0x080058da  882a        cmp      r2, #0x88
+  0x080058dc  07dc        bgt      #0x080058ee
+  0x080058de  772a        cmp      r2, #0x77
+  0x080058e0  47dc        bgt      #0x08005972
+  0x080058e2  db01        lsls     r3, r3, #7
+  0x080058e4  2a4a        ldr      r2, [pc, #0xa8]
+  0x080058e6  82fb0323    smull    r2, r3, r2, r3
+  0x080058ea  5b09        lsrs     r3, r3, #5
+  0x080058ec  12e0        b        #0x08005914
+  0x080058ee  a3f18902    sub.w    r2, r3, #0x89
+  0x080058f2  c2eb0223    rsb      r3, r2, r2, lsl #8
+  0x080058f6  2749        ldr      r1, [pc, #0x9c]
+  0x080058f8  81fb0340    smull    r4, r0, r1, r3
+  0x080058fc  db17        asrs     r3, r3, #0x1f
+
+## 3. Store of raw at +0x5a
+
+One store in 0x08004918–0x08005a1f:
+
+  0x08004924  94f85a20    ldrb.w   r2, [r4, #0x5a]
+  0x08004928  94f85930    ldrb.w   r3, [r4, #0x59]
+  0x0800492c  9a42        cmp      r2, r3
+  0x0800492e  2ad0        beq      #0x08004986
+  0x08004930  84f85a30    strb.w   r3, [r4, #0x5a]   ; new raw from +0x59
+  0x08004934  a84a        ldr      r2, [pc, #0x2a0]   ; 0x200051cc
+  0x08004936  92f8b920    ldrb.w   r2, [r2, #0xb9]
+  0x0800493a  dab9        cbnz     r2, #0x08004974
+
+## 4. strip_process_b @ 0x08004388
+
+### 4a. Entry through the 0x200010d2 check
+
+First cmp/bne is 0x200010dc, not 0x200010d2.
+0x200010d2 is the ldr at 0x080043be; bne target is 0x08004428.
+
+  0x08004388  f0b5        push     {r4, r5, r6, r7, lr}
+  0x0800438a  85b0        sub      sp, #0x14
+  0x0800438c  0446        mov      r4, r0
+  0x0800438e  fff7b9ff    bl       #0x08004304
+  0x08004392  4f4b        ldr      r3, [pc, #0x13c]   ; 0x080044d0 = 0x200010dc
+  0x08004394  1b78        ldrb     r3, [r3]
+  0x08004396  002b        cmp      r3, #0
+  0x08004398  49d1        bne      #0x0800442e
+  0x0800439a  256f        ldr      r5, [r4, #0x70]
+  0x0800439c  e36e        ldr      r3, [r4, #0x6c]
+  0x0800439e  9d42        cmp      r5, r3
+  0x080043a0  42d0        beq      #0x08004428
+  0x080043a2  e91a        subs     r1, r5, r3
+  0x080043a4  0029        cmp      r1, #0
+  0x080043a6  51dd        ble      #0x0800444c
+  0x080043a8  0329        cmp      r1, #3
+  0x080043aa  4ddd        ble      #0x08004448
+  0x080043ac  da1c        adds     r2, r3, #3
+  0x080043ae  55b2        sxtb     r5, r2
+  0x080043b0  2e46        mov      r6, r5
+  0x080043b2  ab42        cmp      r3, r5
+  0x080043b4  38d0        beq      #0x08004428
+  0x080043b6  474b        ldr      r3, [pc, #0x11c]   ; 0x080044d4 = 0x200010d3
+  0x080043b8  1b78        ldrb     r3, [r3]
+  0x080043ba  002b        cmp      r3, #0
+  0x080043bc  34d1        bne      #0x08004428
+  0x080043be  464b        ldr      r3, [pc, #0x118]   ; 0x080044d8 = 0x200010d2
+  0x080043c0  1b78        ldrb     r3, [r3]
+  0x080043c2  002b        cmp      r3, #0
+  0x080043c4  30d1        bne      #0x08004428
+
+Fall-through when that byte is 0 (next checks, not the branch target):
+
+  0x080043c6  454b        ldr      r3, [pc, #0x114]   ; 0x080044dc = 0x20001084
+  0x080043c8  1b78        ldrb     r3, [r3]
+  0x080043ca  002b        cmp      r3, #0
+  0x080043cc  2cd1        bne      #0x08004428
+
+### 4b. bne target 0x08004428
+
+  0x08004428  294b        ldr      r3, [pc, #0xa4]    ; 0x080044d0 = 0x200010dc
+  0x0800442a  0422        movs     r2, #4
+  0x0800442c  1a70        strb     r2, [r3]           ; *0x200010dc = 4
+  0x0800442e  284b        ldr      r3, [pc, #0xa0]    ; 0x080044d0 = 0x200010dc
+  0x08004430  1b78        ldrb     r3, [r3]
+  0x08004432  13f0010f    tst.w    r3, #1
+  0x08004436  05d1        bne      #0x08004444
+  0x08004438  226f        ldr      r2, [r4, #0x70]
+  0x0800443a  94f85430    ldrb.w   r3, [r4, #0x54]
+  0x0800443e  9a42        cmp      r2, r3
+  0x08004440  00d0        beq      #0x08004444
+  0x08004442  2367        str      r3, [r4, #0x70]
+  0x08004444  05b0        add      sp, #0x14
+  0x08004446  f0bd        pop      {r4, r5, r6, r7, pc}
+
+0x08004398 (0x200010dc != 0) lands at 0x0800442e, skipping the strb #4.
+
+## 5. Objects passed to which process
+
+bl-to 0x08004918: five sites, all in app_main_loop. bl-to 0x08004388: one site.
+Kind 0 RAM and strip RAM are different objects.
+
+  0x08015776  ldr r0 ; 0x20000468    bl 0x08004918   analog_knob_process
+  0x0801578e  ldr r0 ; 0x2000121c    bl 0x08004918
+  0x08015794  ldr r0 ; 0x20001294    bl 0x08004918
+  0x0801579a  ldr r0 ; 0x2000130c    bl 0x08004918
+  0x080157a0  ldr r0 ; 0x20001384    bl 0x08004918
+  0x080157ce  ldr r0 ; 0x2000039c    bl 0x08004388   strip_process_b
+
+Ctor r1→+0x58 (from scans/A-boot.txt, not re-derived here):
+  0x20000468 kind 0, 0x2000121c kind 1, 0x20001294 kind 2,
+  0x2000130c kind 3, 0x20001384 kind 4. Strip ctor is 0x08004224, object 0x2000039c.
+
+## 6. Immediates 0x62–0x66
+
+none in 0x08004918–0x08005a1f.
+none in 0x08004388–0x08004645.
+The AutoTest path bls to knob_index_to_cc at 0x08004978. Those immediates are not in this window.
