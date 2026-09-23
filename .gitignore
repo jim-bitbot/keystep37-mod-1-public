@@ -30,6 +30,11 @@ arturia_manual/*.pdf
 midi_control_centre_analysis/*.exe
 midi_control_centre_analysis/*.zip
 
+# Arturia's own device descriptor files, pulled verbatim from MIDI Control
+# Center — vendor data, not derived notes. Keep local, never commit.
+firmware-re/notes/KeyStep37.json
+firmware-re/notes/KeyStep37Test.json
+
 # Third-party source tree kept as local reference only
 other repo/
 

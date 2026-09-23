@@ -138,3 +138,10 @@ See [`docs/firmware-safety-rules.md`](docs/firmware-safety-rules.md).
 
 This project is conservative. The current objective is to **understand
 stock 1.1.6**. If a step cannot be verified, it is not flashed.
+
+## Questions
+
+This repo is the derived-notes side of the project — verified facts and
+reasoning, not vendor material. A few things (factory/service-mode
+details among them) are intentionally kept out of the public notes here.
+If you're working on something similar and want more, DM me.
