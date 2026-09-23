@@ -3,6 +3,8 @@
 Derived reverse-engineering notes for the stock Arturia KeyStep 37
 **application** firmware 1.1.6.579. Not Arturia’s firmware, not a
 replacement image, and not something you flash from this repo.
+The notes and scripts here are [MIT](LICENSE); Arturia’s firmware
+is not.
 
 Vendor `.led` files, the stripped flash extract, official manuals, and
 update captures are **not published**. They stay local (see
@@ -146,6 +148,17 @@ Daniel Gruss reverse-engineered the original KeyStep. Confirmed here:
 hex-encoded `.led`, unsigned app, SysEx update, separate bootloader.
 KeyStep 37 checksums are the Huaxin/midiplus segment scheme, not a
 20-byte flat header. The two binaries do not overlap.
+
+## License
+
+Notes, scripts, and other files in this repository are [MIT](LICENSE)
+(Copyright 2026 Jim Curlis). Keep the copyright and permission notice
+with copies.
+
+That license covers **this** work only. It does not grant rights in
+Arturia’s firmware, trademarks, manuals, MIDI Control Center, or any
+`.led` / flash extract you obtain yourself. Those stay with their
+owners and are not published here.
 
 ## Questions
 
