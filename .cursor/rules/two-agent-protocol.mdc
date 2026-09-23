@@ -13,6 +13,8 @@ Write **only**: `firmware-re/notes/scans/**`, `firmware-re/scripts/scan_*.py`,
 
 Do **not** write `firmware-re/notes/model/**`. Do not commit unless asked.
 No feature patches, no live flash, no occupancy. Queue:
-`firmware-re/notes/scans/tickets.md`. Next Cursor file:
-`firmware-re/notes/scans/D-analog.txt` (parallel with Claude C-model).
-Do not catalog-copy C until `model/C-proposed-catalog.md` is `STATUS: done`.
+`firmware-re/notes/scans/tickets.md`. A–AS are scanned and
+catalog-copied; AT–BA scans are done, Claude models are next. Keep
+scanning ahead of whichever letter Claude is modeling. Do not
+catalog-copy a ticket until its `model/<ticket>-proposed-catalog.md`
+is `STATUS: done`.

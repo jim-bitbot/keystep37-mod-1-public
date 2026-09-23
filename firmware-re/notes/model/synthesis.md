@@ -42,10 +42,12 @@ INPUT: firmware-re/notes/model/A-objects.md through AQ-sites-08-11.md
 - **AA**: internal tempo RAM closed — tick object `+0xe`, full chain to
   TIM2's real ARR register, verified against the STM32F1 timer map.
   Swing stays unfound, now a stronger negative.
-- **AG**: persistence commit path closed — `0x08008290` is the real
-  STM32 FLASH_KEYR unlock sequence, verified against the documented
-  key pair. Corrects `V-commit.md`'s implicit direction assumption on
-  `0x0800ddf6` (it's a load, not a save).
+- **AG**: found the HAL flash-unlock sequence (`0x08008290`, real
+  STM32 FLASH_KEYR, verified against the documented key pair) — **not**
+  the application-level commit trigger, corrected after Cursor's PR
+  review caught the original overclaim. `V-commit.md`'s negative
+  stands. Also corrects `0x0800ddf6`'s direction (it's a load, not a
+  save).
 - **AI**: found 3 more `init_array` slots shaped exactly like
   `ctor_sweep` — unopened, likely the single biggest unexplored area
   left in the binary.

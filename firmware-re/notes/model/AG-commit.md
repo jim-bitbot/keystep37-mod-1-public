@@ -1,15 +1,17 @@
 STATUS: done
 AGENT: claude
 TICKET: AG
-UPDATED: 2026-09-24T00:10+01:00
+UPDATED: 2026-09-24T02:15+01:00 (corrected per Cursor's PR review — see
+"Net" section: this found the HAL flash-unlock sequence, not the
+application-level commit trigger V was looking for. That stays X.)
 INPUT: firmware-re/notes/scans/AG-persist-wrap.txt
 
-# AG-commit — the flash-write trigger, found and verified against real STM32 keys
+# AG-commit — the flash-unlock HAL sequence, found and verified against real STM32 keys
 
-Read-only pass over `scans/AG-persist-wrap.txt` only. This closes
-`V-commit.md`'s "no commit trigger found within the application-level
-boundary" — the boundary just needed to move one function further,
-exactly where the ticket said to stop.
+Read-only pass over `scans/AG-persist-wrap.txt` only. **This does not
+close `V-commit.md`'s open item** — see the corrected "Net" section
+below. It finds a real, adjacent HAL-level fact (the flash-unlock
+sequence), not the application-level commit trigger.
 
 ## 1. 0x0800ddf6 is a load, not a save — a direction correction to V
 
@@ -75,17 +77,27 @@ magic/signature check before proceeding, consistent with validating a
 slot's integrity before a write. **S** for the shape; the magic values'
 exact role not resolved further here.
 
-## Net for HANDOFF layer (persist) — V's open item closed
+## Net for HANDOFF layer (persist) — corrected: the HAL unlock is found, the application trigger is still X
 
-**The RAM→flash commit path exists and is now located**: slot data
-gets unlocked via the real STM32 FLASH_KEYR sequence
-(`0x08008290`), guarded by a busy/timeout wrapper (`0x08008338`), both
-called from inside the already-mapped persist region. This is the
-correct, real stopping point per the project's own "do not reverse
-HAL" rule — going further would mean reversing ST's own flash-program
-routine, which this ticket correctly declined to do. `V-commit.md`'s
-"not found" is now superseded: not because V did anything wrong, but
-because the answer was one function further than V's own stated
-boundary, exactly as V predicted.
+**Correction (Cursor's PR review caught this overclaim):** the
+original version of this section said "the RAM→flash commit path
+exists and is now located." That overstates it. What's actually
+confirmed: `0x08008290` is the real STM32 FLASH_KEYR unlock sequence
+(verified against the documented key pair), guarded by
+`0x08008338`, both called from 4 sites inside the already-mapped
+persist region (`0x0800de00`-`0x0800e400`). **That's a real HAL-level
+primitive, correctly identified.** What is **not** shown: that any of
+those 4 call sites is specifically the trigger that commits the
+RAM-staged sequence data (`seq_step_store`'s `0x200010fc` buffer) to
+flash, as opposed to unlocking flash for some other write in the same
+region (settings, a different slot field, etc.). **The
+application-level commit trigger — "what decides to write this RAM
+buffer to that flash slot, and when" — stays X, unresolved.** This is
+the correct, real stopping point per the project's "do not reverse
+HAL" rule (going further into `0x08008290`'s own callers-of-callers
+territory risks exactly that), but the ticket's original framing
+claimed more closure than the evidence supports. `V-commit.md`'s "not
+found" is **not** superseded — V's negative stands; this ticket adds a
+real, adjacent HAL-level fact, not the answer V was looking for.
 
 STATUS: done

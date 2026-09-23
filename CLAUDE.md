@@ -14,7 +14,7 @@ and [`docs/HANDOFF.md`](docs/HANDOFF.md) (resume: understand 1.1.6).
 
 Propose catalog rows in `model/<ticket>-proposed-catalog.md`. Cursor
 copies accepted P/S rows. Queue: `firmware-re/notes/scans/tickets.md`.
-Next: `model/C-loop.md` + `model/C-proposed-catalog.md` from
-`scans/C-loop-irq.txt` (`STATUS: done`). Do not write `scans/` or the
-catalog. No git commit unless Jim asked. No flash, no occupancy, no
-Euclidean rebuild.
+Tickets A–AS are modeled and catalog-copied. Next: tickets AT–BA —
+scans are `STATUS: done`, models not yet written. Do not write
+`scans/` or the catalog. No git commit unless Jim asked. No flash, no
+occupancy, no Euclidean rebuild.
