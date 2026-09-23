@@ -79,7 +79,7 @@ Stop AutoAttach, leave the updater on Windows, then from WSL:
 ./scripts/flash-win.sh --dry-run
 # live restore stock only, after Rec+Stop+Play, AutoAttach off:
 ./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
-  /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
+  KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
 `flash_bl_wsl.sh` refuses. MCC is recovery only. Detach to Windows first

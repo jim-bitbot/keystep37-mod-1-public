@@ -38,12 +38,84 @@ proposed catalog rows live in
 the accepted subset.
 
 Tickets **A–AS** are modeled and copied into the catalog. Scans **AT–BA**
-are on disk and not modeled yet. The USB stack body and the bootloader
-(`0x08000000`–`0x08003FFF`) were left alone on purpose.
+are on disk and not modeled yet.
 
 [`firmware-re/notes/findings-2026-09-20.md`](firmware-re/notes/findings-2026-09-20.md)
 is a chronological lab log. Mid-file “not yet” paragraphs are stale;
-prefer the catalog.
+prefer the catalog. `model/synthesis.md` still has a “Top open leads
+(post Round-2)” list; treat the sections below as current.
+
+## Coverage
+
+App Thumb `0x08004000`–`0x0801F400` is about 109 KB. `recreate.py` names
+roughly 85 function starts. The catalog has about 270 unique flash
+addresses and 75 RAM addresses; about 30 rows are **P**, about 150 are
+**S**. A C++ STM32 app this size usually has high-hundreds of functions,
+so by count this is perhaps 10–15%. That is an order-of-magnitude guess,
+not a measurement.
+
+Function count undersells the hot path. Mapped end to end: boot and the
+ctor sweep, the main loop and IRQs, the three input buses, the tick
+object and tempo, the swing table, the 8-way mode TBH and its builders,
+`play_time_step`, the step layout (8 voices × 2 bytes), the rest/tie
+emission gate, the CC21 mapping, and the full panel occupancy. For
+“clone a mode and change what it emits,” that is most of what matters.
+
+As a map for adding one arp mode: perhaps two thirds of the way there.
+The remaining gaps are a reliable step-gating model and a free gesture
+to switch the mode. As a complete reading of the firmware: a small
+fraction, and deliberately so.
+
+## Deliberately out of scope
+
+The bootloader (`0x08000000`–`0x08003FFF`), the USB stack body, and the
+ST HAL were left alone for safety. That is about a fifth of the image
+unexamined by design. It caps what “full” can mean.
+
+## Still open
+
+- The trigger that commits a RAM slot to flash
+- Which GPIOD pin on `0x20004f00` is the sync jack and which is a DIP
+  (Arturia’s docs say the rear DIP selects clock source and needs a
+  reboot; the firmware object we have is the jack path)
+- USB vs DIN identity on `0x20001d60` (DIN slot is confirmed; USB is a
+  separate site)
+- The family selector in `param_field_dispatch`
+- About a dozen ctor objects that exist but have no role
+- Case 5 of `seq_step_store`
+- The hold-length-clear gesture (Shift+Oct−+Oct+)
+- Named handlers for Shift secondaries — every Shift+key combo is
+  taken, so a spare gesture for a new mode has to come from these
+- Scans AT–BA: on disk, not modeled
+
+The Shift-handler gap matters most if the goal is a new mode toggle.
+
+The Euclidean hear-tests are a caution on the tick model. The same
+flashed `e0b` image gave a steady 1,2,2, then ~90% every-step, then
+3-in-8. The Walk/Pattern label swap explains some of that. Results that
+change on one image also suggest a second entry into `play_time_step`
+(EXTI0 → `0x08011ff0`) that is not pinned down. Get that reproducible
+before trusting the tick model for a chord generator.
+
+## Related work
+
+These are host-side or family notes, not another 1.1.6 address catalog.
+
+- [sysex-controls](https://github.com/soyersoyer/sysex-controls) — Linux
+  MCC stand-in. KeyStep 37 pages use the same `0x41xx` global params as
+  `KeyStep37.json`. It writes as well as reads. It does not dump
+  sequencer banks.
+- [midi-control, Arturia v2](https://docs.rs/midi-control/latest/midi_control/vendor/arturia/)
+  — family verbs: `01` query, `02` = device report **and** host write.
+  That is why there is no SET TBB. Ancestor:
+  [untergeek on BeatStep](https://www.untergeek.de/2014/11/taming-arturias-beatstep-sysex-codes-for-programming-via-ipad/).
+- [Arturia sync FAQ](https://support.arturia.com/hc/en-us/articles/4405748057618-KeyStep-37-General-Questions)
+  — clock source is the rear DIP; reboot after a change.
+- [Daniel Gruss, original KeyStep](https://dsgruss.github.io/notes/2020/10/02/keystep1.html)
+  and [auduchinok’s 1.1.6 LED gist](https://gist.github.com/auduchinok/1dea3290af548be0a56767f9957fbadc)
+  — Huaxin / octave-LED baseline used here.
+- KeyStep 37 **mk2** manuals are a different product. Do not mix them
+  into 1.1.6.
 
 ## What the application looks like
 
@@ -78,16 +150,19 @@ bit 7 (retention). Key notes leave on DIN via USART1. USB MIDI out is a
 separate call site, not a slot on the DIN/display object. Pattern mode
 is engine `+0x10 == 6` (panel CC 21 = 7).
 
-**Protocol.** App-mode GET is mapped. There is no sibling SET TBB;
-writes are the panel/knob paths already in the catalog.
+**Protocol.** App-mode GET is mapped. Host SET is Arturia v2 verb `02`
+— the same `02 00 41 <id> <value>` shape as the GET reply. There is no
+sibling SET TBB in the app.
 
 **Persist.** Slot flash can be loaded into RAM. The STM32 `FLASH_KEYR`
 unlock sequence is identified. The application trigger that *commits* a
 slot is not.
 
 **Clock / sync.** A four-pin GPIOD object (`0x20004f00`) is read through
-IDR bit tests and can gate TIM2 disable and MIDI-Start. Which pin is
-the jack vs a DIP is still a hypothesis.
+IDR bit tests and can gate TIM2 disable and MIDI-Start. Arturia’s docs
+say the rear DIP selects Internal / USB / MIDI / Sync In (reboot after
+a change). Which of the four pins is the jack vs a DIP is still a
+hypothesis.
 
 **Panel occupancy.** Shift+keys 1–16 are Keyboard MIDI channel, not
 free. Shift+Tap is tempo. Chord-then-Rec lights Rec. The map is

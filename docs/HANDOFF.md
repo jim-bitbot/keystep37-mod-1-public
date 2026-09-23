@@ -28,8 +28,10 @@ read-back vs the `.led` — not required to study the extract.
 
 Analyze
 `firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin`
-(base `0x08000000`). App Thumb `0x08004000`–`0x0801F400`. ~40 named
-functions in `ghidra/recreate.py` are **islands**, not a map.
+(base `0x08000000`). App Thumb `0x08004000`–`0x0801F400` (~109 KB).
+`recreate.py` names ~85 function starts. Catalog ~270 flash / ~75 RAM
+rows; ~30 **P**, ~150 **S**. Function-count guess 10–15% of the app.
+Hot path A–AS is mapped; that is not a full image map.
 
 Build the model in this order (wire constant → `cmp` imm → correct
 function boundary → callers). Occupancy CCs **are** firmware control IDs
@@ -214,6 +216,15 @@ AZ: sole caller of `0x08011ff0` is EXTI0 `0x080183c6` (GPIOD).
 BA: ctor `+0x18`=`0x20002bec`, `+0x1c`=`0x08014b74`. AX dest `+0x401`.
 Tomorrow: Claude models AT+AU–BA; Cursor catalog-copy only.
 
+Coverage 2026-09-23: hot path mapped (boot, loop/IRQs, three buses,
+tick/tempo/swing, 8-way mode TBH, play_time_step, emission gate,
+occupancy). Open: persist commit, GPIOD jack vs DIP, unnamed Shift
+handlers, AT–BA unmodeled, family selector, ~12 role-less ctors,
+store case 5, hold-length-clear. Host SET is Arturia v2 verb `02`
+(same shape as GET reply), not a second TBB. Mode row `0x08011a38`
+corrected (6=Pattern, 5=Order/Walk). `model/synthesis.md` “Top open
+leads” is still labelled post Round-2.
+
 ## Resume here — 2026-09-22 — cycle harness + occupancy map
 
 **Superseded the same day** by “understand stock 1.1.6.579”. Occupancy
@@ -270,7 +281,7 @@ WSL `./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YE
 ## Resume here — 2026-09-22 — flash from WSL via Windows py.exe
 
 Claude rewired PC_1 `flash_win.py` to import WSL `led_codec.py`
-(`\\wsl$\Ubuntu\home\jimcu\dev\KeyStep37_Mod_1\firmware-re\scripts`).
+(WSL `firmware-re/scripts`).
 `led_records.py` is gone. Dry-run segment counts match the old parser
 (stock 176 / 110 data / 66 fill).
 
@@ -279,7 +290,7 @@ Windows:
 
 ```
 ./scripts/flash-win.sh
-./scripts/flash-win.sh /mnt/c/Users/jimcu/KeystepFlash/e0b_pitchgate_3in8.led
+./scripts/flash-win.sh KeystepFlash/e0b_pitchgate_3in8.led
 ```
 
 Default is `--dry-run`. Live still needs Rec+Stop+Play, AutoAttach off,
@@ -327,7 +338,7 @@ default **off** (stock). Shift+C2 (MIDI 36) arms fixed 3-in-8; Shift+D2
 (37) disarms. Not hits-from-slot — Pattern one-key would hide the latch.
 Unicorn: latch-off every-step, latch-on 3-in-8, Shift FLAG set/clear OK.
 **Do not flash old `e3_euclid_shift.led`.** Windows PC_1: Rec+Stop+Play,
-`flash_win.py` `C:\Users\jimcu\KeystepFlash\e3b_pitchgate_shift.led`.
+`flash_win.py` `KeystepFlash\e3b_pitchgate_shift.led`.
 Then WSL `listen_ks37.py e3-off --clocks` (every-step) then Shift+1 and
 `e3-on --clocks` (3,3,2). MIDI CH stays MCC / User Channel.
 
@@ -346,7 +357,7 @@ you want an audible 4-in-8 from e1b.
 of voice-0 pitches that are not `0x81`/`0x82`/`0xFF`. Unicorn: 4-in-8
 and 8-in-8 OK; `emulate_ks37.py all` OK. **Do not flash old
 `e1_euclid_hits.led`.** Windows PC_1: Rec+Stop+Play, `flash_win.py`
-`C:\Users\jimcu\KeystepFlash\e1b_pitchgate_hits.led`. Then WSL
+`KeystepFlash\e1b_pitchgate_hits.led`. Then WSL
 `listen_ks37.py e1 --clocks`. Pattern + one held key is likely
 **every-step** (k=n, all pitches real) — that is the A/B vs e0b's 3,3,2,
 not a fail. A Seq slot with rests is the 4-in-8 hear-test.
@@ -526,7 +537,7 @@ calls don't advance the counter) — all passed. Rebuilt
 `e0b_pitchgate_3in8.led`, re-verified clean (same diff shape as before:
 one hook redirect, the patch page, the checksum; vector table and old
 `seq_step_gate` sites untouched), copied to
-`/mnt/c/Users/jimcu/KeystepFlash/`. **Not yet flashed.** Next: same
+`KeystepFlash/`. **Not yet flashed.** Next: same
 flash/hear-test round-trip as before, same file name (the old build is
 superseded in place).
 
@@ -601,7 +612,7 @@ Cursor (Windows) · Claude (WSL) · 2026-09-21 night · Claude (WSL) 2026-09-22
 
 **Hardware first:** E0 dump got `F0 77 F7` then stayed on `0291`
 (LEDs looping). Not bricked. **MCC Upgrade from file** stock
-`C:\Users\jimcu\KeystepFlash\keystep37_1.1.6.579_stock.led`. Unplug
+`KeystepFlash\keystep37_1.1.6.579_stock.led`. Unplug
 when MCC finishes. Do not Rec+Stop+Play until app `0219` is back.
 
 **Cause (packaging, not Thumb):** `implant_page` copied the page-0
@@ -618,7 +629,7 @@ noop rebuilt into KeystepFlash.
 `listen_ks37.py e0` (IOI **3,3,2**).
 
 **Dump is not this repo.** Do not retry WSL chunk send. Dump lab:
-`C:\Users\jimcu\Documents\my apps\Keystep_Mod_PC_1`.
+the Windows dump lab (`flash_win.py`).
 
 Two updater LED patterns (both work; not factory reset):
 
@@ -645,7 +656,7 @@ it with either updater. Do **not** send app-mode `productKey` from WSL.
    (`e1`, `e3-off`, `e3-on`, `c1 --scale major`, `c2`).
 
 Abort: stay in updater → MCC stock on Windows
-(`C:\Users\jimcu\KeystepFlash\keystep37_1.1.6.579_stock.led`). Clockwise
+(`KeystepFlash\keystep37_1.1.6.579_stock.led`). Clockwise
 LEDs are fine. Never `usbipd detach` a wedged updater — unplug.
 
 **Already decided / do not redo:**
@@ -687,7 +698,7 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 | Flash without MCC | **Closed.** Rec+Stop+Play + `flash-win.sh`. MCC = recovery. ALSA dump refused |
 | MCU / unused space | STM32F1 + GPIOE + TIM8 + USB; ≥256KB (F103VC). 66 KiB FF-fill at `0x0801F400` (**future** Thumb) |
 | Pattern-mode generator | **Named (island).** Mode byte `engine+0x10 == 6` (CC21=7). TBH `0x08011a38` case 6. Play-time `0x08013e8c`. Pitch-gate `0x08013ebc` is emission; `seq_step_gate` bit 7 is retention |
-| Machine model (boot, objects, loop, IRQs, three buses, time, voice) | **Not done.** Catalog + `recreate.py` are islands |
+| Machine model (boot, objects, loop, IRQs, three buses, time, voice) | Hot path A–AS. ~85 named starts. ~10–15% of functions (guess). Bootloader / USB body / HAL out |
 | Mode activation | **`set_arp_mode` `0x08011794`**. Knob path `0x08016a26` reads settings `+0x55` |
 | Chord interval | Unicorn: interval = `*(int8*)(voice+0x4f)` on `0x200051cc`; transpose = `0x200000C8` |
 | Panel occupancy | **Done enough.** `stock-shift-map.md`. Shift+keys 1–16 = MIDI CH. Shift+Mod = later latch candidate |
@@ -699,6 +710,8 @@ Reset `0x0801d311`). Framed-file VAs in older notes are file offsets.
 
 - Normal USB `1c75:0219`, bootloader `1c75:0291`
 - GET: `F0 00 20 6B 7F 42 01 00 41 <globalParamId> F7`
+- Host SET uses the same `02 00 41 <id> <value>` shape as the GET reply
+  (Arturia v2 verb `02`). No SET TBB in the app.
 - Update: `F0 5A 57 6E 28 3C 4E 51 F7` (`productKey`) twice, then `F0` + hex-ASCII `.led` slices + `F7`
 - Pattern = Mode knob CC 21 value **7** = internal `engine+0x10` **6** (CC21 = internal + 1). Chord knobs CC 98/99/100/101
 - Arp ignores injected MIDI notes; physical keys only

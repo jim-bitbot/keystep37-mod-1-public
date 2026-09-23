@@ -21,7 +21,7 @@ The analysis is based on the actual installed app and installer files discovered
 
 - C:\Program Files (x86)\Arturia\MIDI Control Center\MIDI Control Center.exe
 - C:\Program Files (x86)\Arturia\MIDI Control Center\ArturiaMIDI_DriverSetup.exe
-- C:\Users\jimcu\Downloads\MIDI_Control_Center__1_23_0_134.exe
+- MIDI_Control_Center__1_23_0_134.exe (local vendor installer, not in git)
 - C:\ProgramData\Arturia\MIDI Control Center\Resources
 - C:\ProgramData\Arturia\MIDI Control Center\Firmware
 

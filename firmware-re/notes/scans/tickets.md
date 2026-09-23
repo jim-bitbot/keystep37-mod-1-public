@@ -115,6 +115,11 @@ A–AS catalog-closed. AT/AU–BA scans `STATUS: done`; no `model/AT`–`BA` pro
 
 Tomorrow: Claude models AT + AU–BA. Cursor catalog-copies `STATUS: done` P/S only. No new letter, no flash, no occupancy, no commit.
 
+Coverage (2026-09-23): hot path A–AS. ~85 named starts; function-count
+guess 10–15%. Next layer if we go further: unnamed Shift handlers,
+AT–BA models, persist commit, GPIOD jack vs DIP. `model/synthesis.md`
+“Top open leads (post Round-2)” is stale — do not treat it as current.
+
 ---
 
 ## C — main loop / IRQs

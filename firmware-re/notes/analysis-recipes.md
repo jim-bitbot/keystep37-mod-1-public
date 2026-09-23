@@ -65,7 +65,7 @@ Device / hardware (restore stock only unless Jim says otherwise):
 # dump: unplug, Rec+Stop+Play, plug USB (Hold/Shift alternate).
 # AutoAttach off; 0291 stays on Windows. Then from WSL:
 ./scripts/flash-win.sh --already-bootloader --already-unlocked --confirm YES-FLASH \\
-  /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
+  KeystepFlash/keystep37_1.1.6.579_stock.led
 ./scripts/wait_wsl_reattach.sh
 ./scripts/keystep-see.sh
 ```
@@ -74,7 +74,7 @@ Do not send app-mode `productKey` from WSL. MCC stock is recovery
 (clockwise Hold/Shift/Oct chase). Packaging check:
 
 ```
-./scripts/flash-win.sh --dry-run /mnt/c/Users/jimcu/KeystepFlash/keystep37_1.1.6.579_stock.led
+./scripts/flash-win.sh --dry-run KeystepFlash/keystep37_1.1.6.579_stock.led
 ```
 
 **Future** (refused unless `KS37_FEATURE_FLASH=YES-FEATURE-FLASH`):

@@ -1,8 +1,9 @@
 # Address catalog — KeyStep 37 firmware 1.1.6.579
 
 **Current work (2026-09-23, parked):** A–AS rows copied. AT/AU–BA scans
-exist; wait for Claude proposed files before new names. Feature patches
-are **future**. See [`docs/HANDOFF.md`](../../docs/HANDOFF.md).
+exist; wait for Claude proposed files before new names. Coverage: hot
+path mapped; function-count guess 10–15%. Feature patches are **future**.
+See [`docs/HANDOFF.md`](../../docs/HANDOFF.md).
 
 **Use the stripped flash extract**, not the framed `.led` decode:
 
@@ -333,8 +334,8 @@ Pattern is **arp-engine `+0x10` == 6** (panel CC21 = 7; CC21 = internal + 1).
 |---|---|---|---|---|
 | `0x08011794` | | set_arp_mode | `if (*obj+0x10 != r1) { *+0x10 = r1; notify }` | S |
 | `0x08011a1c` | | rebuild_order | 8-way **TBH** on `ldrb [obj,#0x10]`; `cmp #7` | S |
-| `0x08011a38` | | mode_tbh | Cases 0–7 → Up / Down / Incl / Excl / Random / Order / Walk / **Pattern** | S |
-| `0x08011c88` | | | TBH cases **5 and 7** (Order and Pattern share the hold-order list build). Case-body label inside `rebuild_order`, not a function start. `recreate.py` name removed | S |
+| `0x08011a38` | | mode_tbh | Internal 0–4 Up/Down/Incl/Excl/Random; **5 Order**; **6 Pattern** (semi-random); **7 Order-twin** (same builder as 5). Panel Walk is CC21=6 = internal 5. Do not read this as Walk=6 / Pattern=7 | S |
+| `0x08011c88` | | | TBH cases **5 and 7** (Order and Order-twin share the hold-order list build). Pattern is case 6. Case-body label inside `rebuild_order`, not a function start. `recreate.py` name removed | S |
 | `0x08016a26` | | mode_knob_apply | `mode_byte_get` then `set_arp_mode`. Settings ptr `*0x20001170`, engine `*0x20001094` | S |
 | `0x08017f20` | | set_mode_alt | Second `bl` to `set_arp_mode` | S |
 | `0x0800e4d2` | `0x0800a9b2` | vtable_init | Clears `+0x214`, stores `+0x210` callback | S |

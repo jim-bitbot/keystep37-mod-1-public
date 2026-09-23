@@ -18,7 +18,7 @@ Current goal: machine model of stock 1.1.6.579. No `.led`, no
 
 | Agent | Identity in this repo |
 |---|---|
-| **Cursor** | WSL tree `/home/jimcu/dev/KeyStep37_Mod_1`. Capstone scans, catalog rows, `recreate.py`. |
+| **Cursor** | Local WSL tree. Capstone scans, catalog rows, `recreate.py`. |
 | **Claude** | Same tree (or a clone Jim keeps in sync). Decompile narrative, object/handler stories, **proposed** catalog rows only. |
 
 If you are not sure which you are: Cursor owns `firmware-re/notes/scans/`.
