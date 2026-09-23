@@ -1,0 +1,160 @@
+STATUS: done
+AGENT: cursor
+TICKET: AD
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/E-keys.txt; firmware bin
+
+# AD-key-r2 — 20 insns before each bl 0x0801b750 and sb reads
+
+## 1. 20 insns before each bl
+
+### bl 0x0800cdfa
+  0x0800cdd2  lsls     r7, r1, #8
+  0x0800cdd4  orr      r2, r2, #0x90
+  0x0800cdd8  strb.w   r2, [sp, #8]
+  0x0800cddc  strb.w   r3, [sp, #9]
+  0x0800cde0  strb.w   r8, [sp, #0xa]
+  0x0800cde4  movs     r2, #0
+  0x0800cde6  strb.w   r2, [sp, #0xb]
+  0x0800cdea  ldr      r1, [sp, #8]
+  0x0800cdec  str      r1, [sp, #0xc]
+  0x0800cdee  str      r1, [sp, #4]
+  0x0800cdf0  str      r1, [sp]
+  0x0800cdf2  strb.w   r0, [sb, #0x143]
+  0x0800cdf6  mov      r3, r2
+  0x0800cdf8  ldr      r0, [pc, #0x178]  ; 0x20001eb8
+  0x0800cdfa  bl       #0x801b750
+  0x0800cdfe  ldrb.w   r3, [sb, #0x4d]
+  0x0800ce02  orr      r3, r3, #0x10
+  0x0800ce06  strb.w   r3, [sb, #0x4d]
+  0x0800ce0a  b        #0x800cc62
+  0x0800ce0c  add      r3, r2
+  0x0800ce0e  str      r3, [r4, #0x24]
+  0x0800ce10  b        #0x800cd52
+
+### bl 0x0800cf30
+  0x0800cf08  lsls     r7, r1, #8
+  0x0800cf0a  orr      r2, r2, #0x90
+  0x0800cf0e  strb.w   r2, [sp, #0x14]
+  0x0800cf12  strb.w   r3, [sp, #0x15]
+  0x0800cf16  strb.w   r8, [sp, #0x16]
+  0x0800cf1a  movs     r2, #0
+  0x0800cf1c  strb.w   r2, [sp, #0x17]
+  0x0800cf20  ldr      r1, [sp, #0x14]
+  0x0800cf22  str      r1, [sp, #0x18]
+  0x0800cf24  str      r1, [sp, #0x10]
+  0x0800cf26  str      r1, [sp]
+  0x0800cf28  strb.w   r0, [fp, #0x143]
+  0x0800cf2c  mov      r3, r2
+  0x0800cf2e  ldr      r0, [pc, #0x44]  ; 0x20001eb8
+  0x0800cf30  bl       #0x801b750
+  0x0800cf34  ldrb.w   r3, [fp, #0x4d]
+  0x0800cf38  orr      r3, r3, #0x10
+  0x0800cf3c  strb.w   r3, [fp, #0x4d]
+  0x0800cf40  add.w    r2, r4, #0x118
+  0x0800cf44  ldr.w    r3, [r2, sb, lsl #2]
+  0x0800cf48  orr.w    r3, r3, sl
+  0x0800cf4c  str.w    r3, [r2, sb, lsl #2]
+
+### bl 0x0800d064
+  0x0800d03c  lsrs     r0, r0, #0x1c
+  0x0800d03e  blt      #0x800d0bc
+  0x0800d040  ubfx     r8, r8, #5, #8
+  0x0800d044  ldr.w    r3, [sl, r8, lsl #2]
+  0x0800d048  and      r2, r5, #0x1f
+  0x0800d04c  mov.w    sb, #1
+  0x0800d050  lsl.w    sb, sb, r2
+  0x0800d054  tst.w    r3, sb
+  0x0800d058  ite      ne
+  0x0800d05a  movne    r3, #1
+  0x0800d05c  moveq    r3, #0
+  0x0800d05e  movs     r2, #0
+  0x0800d060  ldr      r1, [sp]
+  0x0800d062  ldr      r0, [pc, #0xcc]  ; 0x20001eb8
+  0x0800d064  bl       #0x801b750
+  0x0800d068  add.w    r2, r4, #0x108
+  0x0800d06c  mvn.w    sb, sb
+  0x0800d070  ldr.w    r3, [r2, r8, lsl #2]
+  0x0800d074  and.w    r3, r3, sb
+  0x0800d078  str.w    r3, [r2, r8, lsl #2]
+  0x0800d07c  ldr.w    r3, [sl, r8, lsl #2]
+  0x0800d080  and.w    r3, r3, sb
+
+### bl 0x08010326
+  0x080102fe  b        #0x8010306
+  0x08010300  movs     r0, #0xff
+  0x08010302  bl       #0x8016294
+  0x08010306  movs     r1, #1
+  0x08010308  ldr.w    r0, [r4, #0x3e0]
+  0x0801030c  bl       #0x80160a8
+  0x08010310  ldrb     r6, [r5]
+  0x08010312  and      r6, r6, #0xf
+  0x08010316  cmp      r0, #0x7e
+  0x08010318  beq      #0x801031e
+  0x0801031a  cmp      r0, r6
+  0x0801031c  bne      #0x80103a6
+  0x0801031e  movs     r3, #0
+  0x08010320  movs     r2, #1
+  0x08010322  ldr      r1, [r5]
+  0x08010324  ldr      r0, [pc, #0x220]  ; 0x20001eb8
+  0x08010326  bl       #0x801b750
+  0x0801032a  add.w    r1, r4, #0x3b8
+  0x0801032e  ldr      r0, [r5]
+  0x08010330  str      r0, [sp, #0x1c]
+  0x08010332  ldrb.w   r3, [r4, #0x3b8]
+  0x08010336  cmp      r3, #0x7e
+
+## 2. 0x0801b750 entry + first sb reads
+
+  0x0801b750  push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0801b754  sub      sp, #0xbc
+  0x0801b756  mov      r6, r0
+  0x0801b758  str      r1, [sp, #4]
+  0x0801b75a  mov      sb, r2
+  0x0801b75c  mov      r4, r3
+  0x0801b75e  adds     r5, r0, #4
+  0x0801b760  mov      r0, r5
+  0x0801b762  bl       #0x801c460
+  0x0801b766  mov      sl, r0
+  0x0801b768  ldr      r1, [sp, #4]
+  0x0801b76a  mov      r0, r5
+  0x0801b76c  bl       #0x801c4ca
+  0x0801b770  mov      r0, r5
+  0x0801b772  bl       #0x801c460
+  0x0801b776  mov      r7, r0
+  0x0801b778  ldr      r3, [pc, #0x2e8]  ; 0x20001124
+  0x0801b77a  ldr      r0, [r3]
+  0x0801b77c  ldrb     r3, [r0, #0xf]
+  0x0801b77e  cmp      r3, #1
+
+sb / r2 uses inside the function (scan 0x0801b750–0x0801bb00):
+
+  0x0801b750  push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0801b75a  mov      sb, r2
+  0x0801b8b2  lsl.w    r2, r2, sb
+  0x0801b980  lsl.w    r2, r2, sb
+  0x0801ba50  smull    r2, r8, sb, r0
+
+## 3. first sb read region 0x0801b8b0
+
+  0x0801b8a8  ldr      r1, [sp, #0x50]
+  0x0801b8aa  str      r1, [sp, #0x54]
+  0x0801b8ac  str      r1, [sp, #0x4c]
+  0x0801b8ae  str      r1, [sp, #0xc]
+  0x0801b8b0  movs     r2, #1
+  0x0801b8b2  lsl.w    r2, r2, sb
+  0x0801b8b6  uxtb     r2, r2
+  0x0801b8b8  ldr      r0, [r6]
+  0x0801b8ba  bl       #0x801b460
+  0x0801b8be  b        #0x801bc64
+  0x0801b8c0  ldrb     r3, [r0, #0x12]
+  0x0801b8c2  cmp      r3, #0
+  0x0801b8c4  bne      #0x801b9b2
+  0x0801b8c6  ldrb     r3, [r0, #0x10]
+  0x0801b8c8  cmp      r3, #2
+  0x0801b8ca  bne      #0x801b92a
+  0x0801b8cc  ldrb     r3, [r0, #0x11]
+  0x0801b8ce  cmp      r3, #1
+  0x0801b8d0  beq      #0x801b8ea
+  0x0801b8d2  cmp      r3, #0
+

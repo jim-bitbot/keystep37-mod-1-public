@@ -1,0 +1,115 @@
+STATUS: done
+AGENT: cursor
+TICKET: U
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/K-protocol.txt; firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# U-set-protocol — SET counterpart to GET TBB 0x0800ee92
+
+## 1. Every tbb/tbh in app (48)
+  0x0800427e  tbb [pc, r3]
+  0x08004968  tbh [pc, r3, lsl #1]
+  0x08006072  tbb [pc, r0]
+  0x080060a8  tbb [pc, r0]
+  0x08006220  tbh [pc, r3, lsl #1]
+  0x08006290  tbh [pc, r0, lsl #1]
+  0x08006462  tbb [pc, r3]
+  0x0800a46c  tbb [pc, r0]
+  0x0800b5be  tbb [pc, r2]
+  0x0800b70c  tbb [pc, r1]
+  0x0800ba62  tbb [pc, r3]
+  0x0800c4be  tbb [pc, r3]
+  0x0800d9dc  tbb [pc, r1]
+  0x0800dade  tbb [pc, r1]
+  0x0800dd36  tbb [pc, r1]
+  0x0800e424  tbb [pc, r3]
+  0x0800e7b4  tbb [pc, r3]
+  0x0800ea86  tbb [pc, r3]
+  0x0800ee92  tbb [pc, r3]
+  0x0800f066  tbh [pc, r3, lsl #1]
+  0x0800f230  tbb [pc, r1]
+  0x0800f320  tbb [pc, r3]
+  0x0800f356  tbb [pc, r2]
+  0x0800f430  tbb [pc, r2]
+  0x0800f4c6  tbb [pc, r2]
+  0x0800f568  tbb [pc, r2]
+  0x0800f66c  tbb [pc, r1]
+  0x0800f734  tbb [pc, r3]
+  0x0800fb00  tbh [pc, r3, lsl #1]
+  0x0800fd78  tbh [pc, r3, lsl #1]
+  0x08010d46  tbb [pc, r3]
+  0x0801111a  tbb [pc, r3]
+  0x08011166  tbb [pc, r3]
+  0x08011a38  tbh [pc, r3, lsl #1]
+  0x08011e10  tbb [pc, r1]
+  0x080122b0  tbb [pc, r3]
+  0x0801234a  tbh [pc, r5, lsl #1]
+  0x080128b2  tbb [pc, r3]
+  0x08014438  tbb [pc, r3]
+  0x08014554  tbb [pc, r3]
+  0x08014698  tbb [pc, r3]
+  0x08015fb0  tbb [pc, r3]
+  0x08017282  tbh [pc, r1, lsl #1]
+  0x08017868  tbh [pc, r1, lsl #1]
+  0x08017ad0  tbh [pc, r1, lsl #1]
+  0x08019566  tbb [pc, r2]
+  0x08019ff8  tbh [pc, r3, lsl #1]
+  0x0801a56a  tbb [pc, r3]
+
+Known already: 0x0800ee92 GET (K); 0x0800f066 param_field_dispatch (M);
+button TBHs (F); analog TBH (D); seq_slot_base (O); seq_step_store (L);
+mode_tbh (rebuild_order).
+
+## 2. Sibling 0x0800ef38 (K: r2!=0 is bx lr)
+  0x0800ef38  002a        cmp      r2, #0
+  0x0800ef3a  40f08380    bne.w    #0x800f044
+  0x0800ef3e  f0b5        push     {r4, r5, r6, r7, lr}
+  0x0800ef40  85b0        sub      sp, #0x14
+  0x0800ef42  1646        mov      r6, r2
+  0x0800ef44  0b78        ldrb     r3, [r1]
+  0x0800ef46  062b        cmp      r3, #6
+  0x0800ef48  02d1        bne      #0x800ef50
+  0x0800ef4a  4b78        ldrb     r3, [r1, #1]
+  0x0800ef4c  012b        cmp      r3, #1
+  0x0800ef4e  03d0        beq      #0x800ef58
+  0x0800ef50  f7f72afc    bl       #0x80067a8
+  0x0800ef54  05b0        add      sp, #0x14
+  0x0800ef56  f0bd        pop      {r4, r5, r6, r7, pc}
+  0x0800ef58  0622        movs     r2, #6
+  0x0800ef5a  8df80020    strb.w   r2, [sp]
+
+## 3. get_param / b / c write-looking stores
+### get_param 0x08005e84 callers ['0x800ef20']
+  0x08005e94  str r3, [r5, #4]
+  0x08005ea4  str r3, [r5, #8]
+  0x08005ebc  str r4, [r3]
+  0x08005eca  strb r3, [r0]
+  0x08005ece  strb r3, [r0, #1]
+  0x08005ed0  strb r3, [r0, #6]
+  0x08005ed2  str r3, [r0, #8]
+  0x08005ed4  str r3, [r0, #0xc]
+  0x08005ee8  strb r1, [r2, #0xd]
+  0x08005ef8  strb r3, [r4]
+  0x08005efa  strb r3, [r4, #1]
+  0x08005efc  strb r3, [r4, #2]
+
+### get_param_b 0x0800614c callers ['0x800ef18']
+  0x0800615e  str r3, [r5, #4]
+  0x0800616e  str r3, [r5, #8]
+  0x08006186  str r4, [r3]
+  0x08006194  strb r3, [r0]
+  0x08006198  strb r3, [r0, #1]
+  0x0800619a  strb r3, [r0, #6]
+  0x0800619c  str r3, [r0, #8]
+  0x0800619e  str r3, [r0, #0xc]
+  0x080061b2  strb r1, [r2, #0xd]
+  0x080061c2  strb r3, [r4]
+  0x080061c4  strb r3, [r4, #1]
+  0x080061c6  strb r3, [r4, #2]
+
+### get_param_c 0x080060c4 callers ['0x800ef28']
+  no str before first pop/bx
+
+## 4. Missing
+No second signed-byte TBB like 0x0800ee92. 0x0800ef38 returns when r2!=0.
+SET entry not found in this scope.

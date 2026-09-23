@@ -1,0 +1,223 @@
+STATUS: done
+AGENT: cursor
+TICKET: C
+UPDATED: 2026-09-22T21:50+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; vec @ 0x08004000; bl-to analog/debounce/tick/panel/0x0800fa64; fn 0x080150d0
+
+# C-loop-irq — main loop and IRQs
+# STM32F1 vector indices used for IRQ names (F103Vx already S from flash-map).
+# USB/DIN roles from this scan's literals + bl, not other-repo names.
+
+## 1. Vector @ 0x08004000  (nonzero / non-default)
+
+Default unused slots: 0x0801d359 -> stub 0x0801d358  `b 0x0801d358` (spin)
+
+  [ 0] 0x08004000 = 0x2000c000   SP
+  [ 1] 0x08004004 = 0x0801d311   Reset_Handler
+  [ 3] 0x0800400c = 0x080181f9   HardFault
+  [15] 0x0800403c = 0x08018201   SysTick
+  [20] 0x08004050 = 0x080186d5   IRQ4  FLASH
+  [22] 0x08004058 = 0x0801831d   IRQ6  EXTI0
+  [25] 0x08004064 = 0x080184f1   IRQ9  EXTI3
+  [27] 0x0800406c = 0x080185e9   IRQ11 DMA1_CH1
+  [28] 0x08004070 = 0x08018a41   IRQ12 DMA1_CH2
+  [29] 0x08004074 = 0x080186c5   IRQ13 DMA1_CH3
+  [35] 0x0800408c = 0x08018605   IRQ19 USB_HP / CAN_TX
+  [36] 0x08004090 = 0x08018615   IRQ20 USB_LP / CAN_RX0
+  [44] 0x080040b0 = 0x08018585   IRQ28 TIM2
+  [46] 0x080040b8 = 0x080185cd   IRQ30 TIM4
+  [53] 0x080040d0 = 0x08018625   IRQ37 USART1
+
+NMI/MemManage/BusFault/UsageFault/SVCall/Debug/PendSV and the rest: stub.
+
+### 1a. default stub @ 0x0801d358
+
+  0x0801d358  fee7              b        #0x0801d358
+
+### 1b. SysTick @ 0x08018200
+
+  0x08018200  08b5              push     {r3, lr}
+  0x08018202  eff726fa          bl       #0x08007652
+  0x08018206  354a              ldr      r2, [pc, #0xd4]  ; 0x20001090
+  0x08018208  1368              ldr      r3, [r2]
+  0x0801820a  0133              adds     r3, #1
+  0x0801820c  1360              str      r3, [r2]
+  0x0801820e  344a              ldr      r2, [pc, #0xd0]  ; 0x2000528d
+  0x08018210  1378              ldrb     r3, [r2]
+  0x08018212  591c              adds     r1, r3, #1
+  0x08018214  1170              strb     r1, [r2]
+  0x08018216  082b              cmp      r3, #8
+  0x08018218  52d8              bhi      #0x080182c0
+
+### 1c. IRQ19 USB_HP @ 0x08018604  / IRQ20 USB_LP @ 0x08018614
+
+  0x08018604  08b5              push     {r3, lr}
+  0x08018606  0248              ldr      r0, [pc, #8]  ; 0x20005888
+  0x08018608  f1f72bf8          bl       #0x08009662
+  0x0801860c  08bd              pop      {r3, pc}
+
+  0x08018614  08b5              push     {r3, lr}
+  0x08018616  0248              ldr      r0, [pc, #8]  ; 0x20005888
+  0x08018618  f1f723f8          bl       #0x08009662
+  0x0801861c  08bd              pop      {r3, pc}
+
+Same USB object `0x20005888`, same `bl 0x08009662`. Not `0x08010638`
+(that VA is only bl'd from `0x080150a4`, a different fn).
+
+### 1d. IRQ37 USART1 @ 0x08018624  (DIN)
+
+  0x08018624  10b5              push     {r4, lr}
+  0x08018626  234b              ldr      r3, [pc, #0x8c]  ; 0x200055e4
+  0x08018628  1b68              ldr      r3, [r3]
+  0x0801862a  1a68              ldr      r2, [r3]
+  0x0801862c  12f0200f          tst.w    r2, #0x20
+  0x08018630  0ad0              beq      #0x08018648
+  0x08018632  da68              ldr      r2, [r3, #0xc]
+  0x08018634  12f0200f          tst.w    r2, #0x20
+  0x08018638  06d0              beq      #0x08018648
+  0x0801863a  5968              ldr      r1, [r3, #4]
+  0x0801863c  1e4b              ldr      r3, [pc, #0x78]  ; 0x200010e0
+  0x0801863e  1868              ldr      r0, [r3]
+  0x08018640  10b1              cbz      r0, #0x08018648
+  0x08018642  c9b2              uxtb     r1, r1
+  0x08018644  f7f78afb          bl       #0x0800fd5c
+  0x08018648  1a4b              ldr      r3, [pc, #0x68]  ; 0x200055e4
+
+RXNE-style bit 5; byte to `0x0800fd5c` with `r0=*0x200010e0`.
+
+### 1e. IRQ28 TIM2 @ 0x08018584
+
+  0x08018584  10b5              push     {r4, lr}
+  0x08018586  0d48              ldr      r0, [pc, #0x34]  ; 0x20005534
+  0x08018588  f2f791fe          bl       #0x0800b2ae
+  0x0801858c  0c4b              ldr      r3, [pc, #0x30]  ; 0x20001098
+  0x0801858e  1868              ldr      r0, [r3]
+  0x08018590  f9f7cefe          bl       #0x08012330
+  0x08018594  10b1              cbz      r0, #0x0801859c
+  0x08018596  0b4b              ldr      r3, [pc, #0x2c]  ; 0x20001158
+  0x08018598  1b78              ldrb     r3, [r3]
+  0x0801859a  03b9              cbnz     r3, #0x0801859e
+  0x0801859c  10bd              pop      {r4, pc}
+  0x0801859e  0a4c              ldr      r4, [pc, #0x28]  ; 0x200010de
+  0x080185a0  2388              ldrh     r3, [r4]
+  0x080185a2  0133              adds     r3, #1
+  0x080185a4  2380              strh     r3, [r4]
+  0x080185a6  064b              ldr      r3, [pc, #0x18]  ; 0x20001098
+  0x080185a8  1868              ldr      r0, [r3]
+  0x080185aa  f9f79bfc          bl       #0x08011ee4
+
+## 2. Reset → post-init `0x08016838` → app `0x080150d0`
+
+Reset last bl is `0x08016838` (only static caller: `0x0801d33e`).
+`0x08016838` does GPIO/clock setup then:
+
+  0x080168aa  fef711fc          bl       #0x080150d0
+  0x080168ae  2046              mov      r0, r4
+  0x080168b0  02b0              add      sp, #8
+  0x080168b2  10bd              pop      {r4, pc}
+
+No `pop {..pc}` in `0x080150d0` through at least `0x08015c00`.
+Inner forever-loop: `0x08015912  b #0x080157c8`. So `0x080150d0` does
+not return; `0x080168ae` is dead after that bl.
+
+  0x08016838  10b5              push     {r4, lr}
+  0x0801683a  82b0              sub      sp, #8
+  0x0801683c  0023              movs     r3, #0
+  0x0801683e  0193              str      r3, [sp, #4]
+  0x08016840  f0f728fb          bl       #0x08006e94
+  0x08016844  fff7c2ff          bl       #0x080167cc
+  0x08016848  fff70efe          bl       #0x08016468
+  0x0801684c  0122              movs     r2, #1
+  0x0801684e  4ff40071          mov.w    r1, #0x200
+  0x08016852  1848              ldr      r0, [pc, #0x60]  ; 0x40011000 GPIOC
+  0x08016854  f1f7ddff          bl       #0x08008812
+
+## 3. App / main loop fn @ 0x080150d0
+
+Prologue:
+
+  0x080150d0  2de9f04f          push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x080150d4  95b0              sub      sp, #0x54
+  0x080150d6  9d4c              ldr      r4, [pc, #0x274]  ; 0x20002d90
+  0x080150d8  2046              mov      r0, r4
+  0x080150da  08f018fb          bl       #0x0801d70e
+  0x080150de  9c4b              ldr      r3, [pc, #0x270]  ; 0x20001120
+  0x080150e0  1c60              str      r4, [r3]          ; subscribe table
+
+Head of fn is one-shot wiring (stores into `0x20001120`, `0x2000109c`,
+`0x20001164`, …). Periodic body is the backward `b` at `0x08015912`.
+
+### 3a. Periodic body  0x080157c8 → 0x08015912  (b back)
+
+  0x080157c8  8848              ldr      r0, [pc, #0x220]  ; 0x20000674
+  0x080157ca  f7f73dfa          bl       #0x0800cc48     keys/scan
+  0x080157ce  8848              ldr      r0, [pc, #0x220]  ; 0x2000039c
+  0x080157d0  eef7dafd          bl       #0x08004388     strip_process_b
+  …
+  0x0801576c  fdf72ef9          bl       #0x080129cc     arp_seq_tick  (also 0x080157b4, 0x080157e8)
+  0x08015776  9348              ldr      r0, [pc, #0x24c]  ; 0x20000468
+  0x08015778  eff7cef8          bl       #0x08004918     analog kind 0
+  0x0801577c  ldr r0, [pc] ; 0x200004f4
+  0x0801577e  bl  #0x08005a20                            mode_skip_apply
+  0x08015782  ldr r0, [pc] ; 0x20001000
+  0x08015784  bl  #0x08005ab8                            timediv_skip_apply
+  0x08015788  ldr r0, [pc] ; 0x2000058c
+  0x0801578a  bl  #0x08005d68
+  0x0801578e  ldr r0 ; 0x2000121c   bl analog 0x08004918
+  0x08015794  ldr r0 ; 0x20001294   bl analog
+  0x0801579a  ldr r0 ; 0x2000130c   bl analog
+  0x080157a0  ldr r0 ; 0x20001384   bl analog   (site 0x080157a2)
+  0x080157ae  bl  #0x0800fa64                            MIDI parser
+  0x080157b4  bl  #0x080129cc                             tick again
+  0x08015856  bl  #0x0800fa64                            MIDI parser again
+
+Nine debounce objects (same RAM as ctor-sweep sites 24–32):
+
+  0x080158dc  ldr r0 ; 0x20000388   bl 0x0801a7ac
+  0x080158e2  ldr r0 ; 0x20000564   bl 0x0801a7ac
+  0x080158e8  ldr r0 ; 0x2000042c   bl 0x0801a7ac
+  0x080158ee  ldr r0 ; 0x20000440   bl 0x0801a7ac
+  0x080158f4  ldr r0 ; 0x200005e4   bl 0x0801a7ac
+  0x080158fa  ldr r0 ; 0x20000454   bl 0x0801a7ac
+  0x08015900  ldr r0 ; 0x200004e0   bl 0x0801a7ac
+  0x08015906  ldr r0 ; 0x20000578   bl 0x0801a7ac
+  0x0801590c  ldr r0 ; 0x20000374   bl 0x0801a7ac
+  0x08015912  b   #0x080157c8
+
+### 3b. Analog five in the same fn (just before the inner loop latch)
+
+  0x08015768  ldr r4 ; 0x20002bec
+  0x0801576a  mov r0, r4
+  0x0801576c  bl  0x080129cc
+  0x08015770  ldr r0 ; 0x200005f8
+  0x08015772  bl  0x08004646
+  0x08015776  ldr r0 ; 0x20000468
+  0x08015778  bl  0x08004918
+
+static bl analog_knob_process: only these five, all in `0x080150d0`.
+static bl strip_process_b: only `0x080157d0`.
+static bl arp_seq_tick: `0x0801576c`, `0x080157b4`, `0x080157e8` (all here).
+static bl 0x0800fa64: `0x080157ae`, `0x08015856` (here). Also earlier
+`0x080154cc -> 0x0800fa16` (sibling parser?).
+
+Early debounce (two only) at `0x080154e0`, `0x080154e6` — not the nine.
+
+panel_button_dispatch also from this fn: `0x08015936`, `0x08015954`,
+`0x08015970` (off the inner `b` path; other sites exist elsewhere).
+
+## 4. bl-to summary (whole image)
+
+  analog_knob_process 0x08004918 : 0x08015778 90 96 9c a2
+  strip_process_b     0x08004388 : 0x080157d0
+  button_debounce     0x0801a7ac : 0x080154e0 e6 + nine 0x080158de..0e
+  arp_seq_tick        0x080129cc : 0x0801576c b4 e8
+  0x0800fa64                 : 0x080157ae, 0x08015856
+  0x08010638                 : 0x080150a4 only (not the loop fn)
+  0x0801b750 note            : 0x0800cdfa, 0x0800cf30, 0x0800d064, 0x08010326
+                              (key/MIDI path, not the 0x080150d0 inner loop)
+
+## 5. Test-20
+
+Loop calls analog then `mode_skip_apply` / `timediv_skip_apply` which
+read `0x200051cc+0xb9` (already catalogued). Debounce path already
+catalogued to `test20_cc_press`. No extra Test-20 entry in this scan.

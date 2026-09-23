@@ -1,0 +1,61 @@
+STATUS: done
+AGENT: cursor
+TICKET: N
+UPDATED: 2026-09-23T20:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; scans/F-buttons.txt
+
+# N-sync — realtime bytes and Tap
+# USB vs DIN: not identified. Tap handler: not in the button TBHs.
+# Internal tempo RAM: not found.
+
+## 1. Where the realtime compares are
+
+0x0800fa64 is called from the main loop at 0x080157ae and 0x08015856.
+Its 0xF8 use is a range check, blo back to 0x0800faac:
+
+  0x0800fcb6  f82e        cmp      r6, #0xf8
+  0x0800fcb8  fff4f8ae    blo.w    #0x0800faac
+
+The clock / start / stop compares are in 0x0800ffe0. r4 is the incoming r0. The byte is [r4].
+
+  0x0800ffe0  2de9f041    push.w   {r4, r5, r6, r7, r8, lr}
+  0x0800ffe6  0446        mov      r4, r0
+  0x080100c4  2378        ldrb     r3, [r4]
+  0x080100c6  fa2b        cmp      r3, #0xfa
+  0x080100c8  25d0        beq      #0x08010116
+  0x080100ca  fc2b        cmp      r3, #0xfc
+  0x080100cc  50d0        beq      #0x08010170
+  0x080100ce  fb2b        cmp      r3, #0xfb
+  0x080100d0  6cd0        beq      #0x080101ac
+  0x080100d2  f82b        cmp      r3, #0xf8
+  0x080100d4  a9d1        bne      #0x0801002a
+
+  0xFA  0x08010116  movs r1, #1; bl 0x08012334
+  0xF8  0x080100d6  ldr r0, [pc] ; 0x20005534
+        0x080100d8  bl 0x0800b0c6
+
+0xFC reads [sp,#0x2c]+0x10 and compares with #2. 0xFB is a fourth beq, target 0x080101ac.
+
+Same four compares again at 0x080104fc, inside 0x08010254. Each beq sets r7=1 and joins at 0x0801038e. That function's only static callers of 0x0800ffe0 are 0x080102fa and 0x080105ae, both inside 0x08010254.
+
+0x08010254 has no static bl. One Thumb pointer: 0x0801e9a8 → 0x08010255.
+Entry r2 selects the path:
+
+  0x0801025a  0446        mov      r4, r0
+  0x0801025c  0d46        mov      r5, r1
+  0x0801025e  1746        mov      r7, r2
+  0x08010260  62b3        cbz      r2, #0x080102bc
+  0x08010262  012a        cmp      r2, #1
+  0x08010264  4cd1        bne      #0x08010300
+
+No USART1 or USB peripheral literal in these windows. 0x20005534 is also the object TIM2 loads (scans/I-time.txt).
+
+## 2. Tap
+
+Compact index 4 is id 0x67 (scans/F-buttons.txt). In all three panel_button_dispatch tables, r1=4 targets the common pop at 0x08017b0e:
+
+  unshifted  half 0x0444
+  shifted    half 0x0151
+  r2==0      half 0x001d
+
+The only #0x67 immediates in the app are id_to_index 0x08006034 and index_to_id 0x0800608a.

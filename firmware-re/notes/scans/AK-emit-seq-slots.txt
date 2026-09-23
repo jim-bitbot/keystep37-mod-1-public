@@ -1,0 +1,118 @@
+STATUS: done
+AGENT: cursor
+TICKET: AK
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/Z-usbdin-emu.txt; scans/R-usbdin.txt; firmware bin
+
+# AK-emit-seq-slots — stores to +0x18 / +0x1c on port objects
+
+# Do not invent a callee if no store.
+
+## vtable 0x20001d60  pc-rel 5
+
+windows with +0x18/+0x1c store: 0
+
+## mid 0x20001e04  pc-rel 38
+
+from 0x0801760e  ldr r0, [pc, #0x1d8]  dest=r0
+  0x0801760e  ldr      r0, [pc, #0x1d8]  ; 0x20001e04
+  0x08017610  bl       #0x801b0f0
+  0x08017614  b        #0x801758a
+  0x08017616  ldr      r3, [pc, #0x1b8]  ; 0x20001098
+  0x08017618  ldr      r0, [r3]
+  0x0801761a  bl       #0x8012330
+  0x0801761e  cmp      r0, #0
+  0x08017620  beq      #0x801759a
+  0x08017622  movs     r1, #2
+  0x08017624  ldr      r3, [pc, #0x1a8]  ; 0x20001098
+  0x08017626  ldr      r0, [r3]
+  0x08017628  bl       #0x8012334
+  0x0801762c  movs     r3, #0
+  0x0801762e  strb     r3, [r4, #0x1c]
+  0x08017630  strb     r3, [r4, #0x10]
+  0x08017632  b        #0x8017b0e
+
+windows with +0x18/+0x1c store: 1
+
+## root 0x20001eb8  pc-rel 28
+
+from 0x08010324  ldr r0, [pc, #0x220]  dest=r0
+  0x08010324  ldr      r0, [pc, #0x220]  ; 0x20001eb8
+  0x08010326  bl       #0x801b750
+  0x0801032a  add.w    r1, r4, #0x3b8
+  0x0801032e  ldr      r0, [r5]
+  0x08010330  str      r0, [sp, #0x1c]
+  0x08010332  ldrb.w   r3, [r4, #0x3b8]
+  0x08010336  cmp      r3, #0x7e
+  0x08010338  beq      #0x80103e4
+  0x0801033a  ldrb.w   r2, [sp, #0x1c]
+  0x0801033e  and      r2, r2, #0xf
+  0x08010342  cmp      r3, r2
+  0x08010344  beq      #0x80103e4
+  0x08010346  movs     r6, #0
+  0x08010348  cbz      r6, #0x8010358
+  0x0801034a  ldr      r3, [pc, #0x200]  ; 0x200051cc
+  0x0801034c  ldrb.w   r3, [r3, #0xb9]
+
+windows with +0x18/+0x1c store: 1
+
+## ctor bodies (known)
+
+### 0x0801acb0
+
+  0x0801acb0  sub      sp, #8
+  0x0801acb2  push     {r4, r5}
+  0x0801acb4  sub      sp, #8
+  0x0801acb6  mov      r4, r0
+  0x0801acb8  mov      r0, sp
+  0x0801acba  stm.w    r0, {r1, r2}
+  0x0801acbe  add      r5, sp, #0x10
+  0x0801acc0  str      r3, [r5, #4]!
+  0x0801acc4  ldm      r0, {r0, r1}
+  0x0801acc6  stm.w    r4, {r0, r2}
+  0x0801acca  add.w    r3, r4, #8
+  0x0801acce  ldm.w    r5, {r0, r1}
+  0x0801acd2  stm.w    r3, {r0, r1}
+  0x0801acd6  add.w    r3, r4, #0x10
+  0x0801acda  add      r2, sp, #0x1c
+  0x0801acdc  ldm.w    r2, {r0, r1}
+  0x0801ace0  stm.w    r3, {r0, r1}
+  0x0801ace4  add.w    r3, r4, #0x18
+  0x0801ace8  add      r2, sp, #0x24
+  0x0801acea  ldm.w    r2, {r0, r1}
+  0x0801acee  stm.w    r3, {r0, r1}        ; +0x18 / +0x1c from ctor stack
+  0x0801acf2  movs     r3, #0
+
+ctor DOES write +0x18/+0x1c (eight-word copy, not six). Incoming
+stack words at ctor sp+0x24 / +0x28. Sweep stack contents for those
+slots were not re-derived here. No later store after a pc-rel of
+0x20001d60. The 0x20001e04 / 0x20001eb8 hits above are strb [r4,#0x1c]
+and str [sp,#0x1c] — different objects / stack, not the emit_seq slots.
+
+### 0x0801b02c stores of +0x18-ish
+
+  0x0801b02c  push     {r4, r5, r6, lr}
+  0x0801b02e  sub      sp, #0x10
+  0x0801b030  mov      r4, r0
+  0x0801b032  mov      r5, r1
+  0x0801b034  mov      r6, r2
+  0x0801b036  adds     r0, #4
+  0x0801b038  bl       #0x801aa84
+  0x0801b03c  add.w    r0, r4, #0x30
+  0x0801b040  bl       #0x801c550
+  0x0801b044  ldr      r3, [pc, #0x90]  ; 0x0801ede4
+  0x0801b046  str      r3, [r4, #0x44]
+  0x0801b048  movs     r3, #0
+  0x0801b04a  strb.w   r3, [r4, #0x48]
+  0x0801b04e  str      r4, [sp, #8]
+  0x0801b050  ldr      r2, [pc, #0x88]  ; 0x0801b22d
+  0x0801b052  str      r2, [sp, #0xc]
+  0x0801b054  mov      r2, sp
+  0x0801b056  add      r1, sp, #0x10
+  0x0801b058  ldmdb    r1, {r0, r1}
+  0x0801b05c  stm.w    r2, {r0, r1}
+  0x0801b060  ldr      r1, [pc, #0x7c]  ; 0x0801ed70
+  0x0801b062  str      r1, [r4, #0x4c]
+  0x0801b064  movs     r1, #1
+  0x0801b066  strb.w   r1, [r4, #0x50]
+

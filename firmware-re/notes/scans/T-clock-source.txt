@@ -1,0 +1,53 @@
+STATUS: done
+AGENT: cursor
+TICKET: T
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/N-05534.txt; firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# T-clock-source — stores and arbitration on 0x20005534
+# 14 pc-rel loads already in N-05534.txt. Not repeated.
+# Object stores (not TIM2 register stores through [obj]):
+
+## 1. Object-field stores (from N init + later)
+Init 0x080186e8 writes +0 TIM2, +4=0xb, +8=0, +0xc=0x15b2, +0x10=0.
+0x08012086 str r3, [r2, #0xc] overwrites object +0xc (ARR path).
+No other direct str to the RAM object itself found besides init and that +0xc.
+
+## 2. Leaf tails (N cut 0x0800b2ae)
+  0x0800b2e0  2368        ldr      r3, [r4]
+  0x0800b2e2  1a69        ldr      r2, [r3, #0x10]
+  0x0800b2e4  12f0040f    tst.w    r2, #4
+  0x0800b2e8  12d0        beq      #0x800b310
+  0x0800b2ea  da68        ldr      r2, [r3, #0xc]
+  0x0800b2ec  12f0040f    tst.w    r2, #4
+  0x0800b2f0  0ed0        beq      #0x800b310
+  0x0800b2f2  6ff00402    mvn      r2, #4
+  0x0800b2f6  1a61        str      r2, [r3, #0x10]
+  0x0800b2f8  0223        movs     r3, #2
+  0x0800b2fa  2376        strb     r3, [r4, #0x18]
+  0x0800b2fc  2368        ldr      r3, [r4]
+  0x0800b2fe  9b69        ldr      r3, [r3, #0x18]
+  0x0800b300  13f4407f    tst.w    r3, #0x300
+  0x0800b304  5fd0        beq      #0x800b3c6
+  0x0800b306  2046        mov      r0, r4
+  0x0800b308  fff7acff    bl       #0x800b264
+  0x0800b30c  0023        movs     r3, #0
+  0x0800b30e  2376        strb     r3, [r4, #0x18]
+  0x0800b310  2368        ldr      r3, [r4]
+
+0x0800b0c6 and 0x0800b0ae are complete in N-05534.txt (bx lr).
+
+## 3. #0x13 (Sync DIP candidate) in those windows
+  b0ae 0x0800b0ae: none
+  b0c6 0x0800b0c6: none
+  b2ae 0x0800b2ae: none
+  init 0x080186e8: none
+  tim2 0x08018584: none
+  f8 0x080100d6: 0x080100de ldrb r3, [r3, #0x13]
+
+## 4. Sibling 0x200054bc
+TIM4_IRQ 0x080185cc passes 0x200054bc to 0x0800b2ae. Same leaf, other object.
+
+## 5. Arbitration
+0x0800b0c6 / 0x0800b0ae test TIM2 SR/DIER bits only. No source-select byte.
+MIDI F8 and TIM2 both call those leaves on the same object.

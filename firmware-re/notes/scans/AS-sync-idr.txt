@@ -1,0 +1,253 @@
+STATUS: done
+AGENT: cursor
+TICKET: AS
+UPDATED: 2026-09-23T21:55+01:00
+INPUT: scans/AB-sync-dip.txt; model/AB-proposed-catalog.md; firmware bin
+
+# AS-sync-idr — GPIO IDR +0x08 after AB negative
+# App Thumb 0x08004000–0x0801F400. USB stack / bootloader not walked.
+# GPIO bases: 0x40010800 A … 0x40011C00 F. STM32 IDR is +0x08.
+
+## 1. ldr [gpio,#8] in the 32-insn window after a pc-rel GPIO load
+
+count 0
+
+## 2. 0x08008804  (IDR bit: ldr [r0,#8]; tst r1)
+
+  0x08008804  ldr      r3, [r0, #8]
+  0x08008806  tst      r1, r3
+  0x08008808  bne      #0x800880e
+  0x0800880a  movs     r0, #0
+  0x0800880c  bx       lr
+  0x0800880e  movs     r0, #1
+  0x08008810  bx       lr
+
+bl callers of 0x08008804: 5
+  0x0801905e  0x080191a6  0x080191be  0x0801923a  0x0801924a
+Thumb ptr 0x08008805: 0
+bl 0x08008804 in 0x08014d00–0x08015a00 / 0x08016800–0x08016c00 / Reset: 0
+
+## 3. wrappers that bl 0x08008804
+
+### 3a  0x08019058
+
+  0x08019058  push     {r3, lr}
+  0x0801905a  ldrh     r1, [r0, #4]
+  0x0801905c  ldr      r0, [r0]
+  0x0801905e  bl       #0x8008804
+  0x08019062  pop      {r3, pc}
+
+bl callers: 0x0801906a  0x08019080  (same file, 0x08019064)
+
+### 3b  0x0801919e
+
+  0x0801919e  push     {r4, lr}
+  0x080191a0  mov      r4, r0
+  0x080191a2  ldrh     r1, [r0, #0x12]
+  0x080191a4  ldr      r0, [r0, #4]
+  0x080191a6  bl       #0x8008804
+  0x080191aa  mov      r2, r0
+  0x080191ac  ldrh     r1, [r4, #0x16]
+  0x080191ae  ldr      r0, [r4, #0xc]
+  0x080191b0  bl       #0x8008812
+  0x080191b4  pop      {r4, pc}
+
+bl callers: 0x0801854a
+
+### 3c  0x080191b6
+
+  0x080191b6  push     {r4, lr}
+  0x080191b8  mov      r4, r0
+  0x080191ba  ldrh     r1, [r0, #0x10]
+  0x080191bc  ldr      r0, [r0]
+  0x080191be  bl       #0x8008804
+  0x080191c2  mov      r2, r0
+  0x080191c4  ldrh     r1, [r4, #0x14]
+  0x080191c6  ldr      r0, [r4, #8]
+  0x080191c8  bl       #0x8008812
+  0x080191cc  pop      {r4, pc}
+
+bl callers: 0x0801835a
+
+### 3d  0x08019234
+
+  0x08019234  push     {r3, lr}
+  0x08019236  ldrh     r1, [r0, #0x12]
+  0x08019238  ldr      r0, [r0, #4]
+  0x0801923a  bl       #0x8008804
+  0x0801923e  cbz      r0, #0x8019242
+  0x08019240  movs     r0, #1
+  0x08019242  pop      {r3, pc}
+
+bl callers: 0x0800677c  0x08006790  0x08018336  0x08018526  0x08018554  0x0801a48c
+
+### 3e  0x08019244
+
+  0x08019244  push     {r3, lr}
+  0x08019246  ldrh     r1, [r0, #0x10]
+  0x08019248  ldr      r0, [r0]
+  0x0801924a  bl       #0x8008804
+  0x0801924e  cbz      r0, #0x8019252
+  0x08019250  movs     r0, #1
+  0x08019252  pop      {r3, pc}
+
+bl callers: 0x08006734  0x08006748  0x080124f8  0x080183ba  0x080183d0
+
+## 4. 0x08016644  (IDR word: ldr [r0,#8]; uxth)
+
+  0x08016644  ldr      r0, [r0, #8]
+  0x08016646  uxth     r0, r0
+  0x08016648  bx       lr
+
+bl callers: 5, all in 0x0800c65c / 0x0800c68c / 0x0800c6c2 / 0x0800c6de / 0x0800c6f4
+Thumb ptr 0x08016645: 0
+One of those loads GPIOB then IDR:
+
+  0x0800c6f0  ldr      r4, [pc, #0x14]  ; 0x40010c00
+  0x0800c6f2  mov      r0, r4
+  0x0800c6f4  bl       #0x8016644
+  0x0800c6f8  orr      r1, r0, #6
+  0x0800c6fc  uxth     r1, r1
+  0x0800c6fe  mov      r0, r4
+  0x0800c700  bl       #0x8016640
+
+## 5. object stored at 0x20001128
+
+ctor sweep 0x08014d08: r6=#2  r7=#8  r8=#1  fp=#4  sb=0x40011400
+push {r4} inside 0x08019178 shifts stack +4 vs the stores below.
+
+  0x08014da8  mov.w    fp, #4
+  0x08014dac  str.w    fp, [sp, #0x10]
+  0x08014db0  str.w    sb, [sp, #0xc]
+  0x08014db4  str      r6, [sp, #8]
+  0x08014db6  str.w    sb, [sp, #4]
+  0x08014dba  str      r7, [sp]
+  0x08014dbc  mov      r3, sb
+  0x08014dbe  mov      r2, r8
+  0x08014dc0  mov      r1, sb
+  0x08014dc2  ldr      r0, [pc, #0x1fc]  ; 0x20004f00
+  0x08014dc4  bl       #0x8019178
+
+  0x08019178  push     {r4}
+  0x0801917a  str      r1, [r0]
+  0x0801917c  str      r3, [r0, #4]
+  0x0801917e  ldr      r3, [sp, #8]
+  0x08019180  str      r3, [r0, #8]
+  0x08019182  ldr      r3, [sp, #0x10]
+  0x08019184  str      r3, [r0, #0xc]
+  0x08019186  strh     r2, [r0, #0x10]
+  0x08019188  ldrh.w   r3, [sp, #4]
+  0x0801918c  strh     r3, [r0, #0x12]
+  0x0801918e  ldrh.w   r3, [sp, #0xc]
+  0x08019192  strh     r3, [r0, #0x14]
+  0x08019194  ldrh.w   r3, [sp, #0x14]
+  0x08019198  strh     r3, [r0, #0x16]
+  0x0801919a  pop      {r4}
+  0x0801919c  bx       lr
+
+Implied 0x20004f00 after that bl (ctor push {r4} accounted):
+  +0    0x40011400
+  +4    0x40011400
+  +8    0x40011400
+  +0xc  0x40011400
+  +0x10 1
+  +0x12 8
+  +0x14 2
+  +0x16 4
+
+  0x08015140  ldr      r5, [pc, #0x25c]  ; 0x20004f00
+  0x08015142  mov      r0, r5
+  0x08015144  bl       #0x80191fe
+  0x08015148  ldr      r3, [pc, #0x258]  ; 0x20001128
+  0x0801514a  str      r5, [r3]
+
+## 6. BSRR siblings on the same object (not IDR; same +0x14 / +0x16)
+
+0x08008812 stores r1 or r1<<16 to [r0,#0x10].
+0x080191ce / 0x080191e6 are the write wrappers (object +0xc/+0x16 and +8/+0x14).
+
+## 7. clock-adjacent IDR sites (r0 from [0x20001128])
+
+### 7a  0x080124f4  → 0x08019244
+
+  0x080124ea  ldr      r3, [pc, #0x164]  ; 0x200051cc
+  0x080124ec  ldrb.w   r3, [r3, #0x44]
+  0x080124f0  cmp      r3, #0
+  0x080124f2  bne      #0x8012414
+  0x080124f4  ldr      r3, [pc, #0x13c]  ; 0x20001128
+  0x080124f6  ldr      r0, [r3]
+  0x080124f8  bl       #0x8019244
+  0x080124fc  cmp      r0, #1
+  0x080124fe  bne      #0x8012414
+  0x08012500  ldr      r0, [r4, #0x4c]
+  0x08012502  bl       #0x8013110
+  0x08012506  strb     r0, [r4, #0x10]
+
+### 7b  0x08018328  → 0x08019234
+
+  0x08018328  push     {r4, lr}
+  0x0801832a  sub      sp, #8
+  0x0801832c  ldr      r3, [pc, #0x190]  ; 0x40010400
+  0x0801832e  movs     r2, #1
+  0x08018330  str      r2, [r3, #0x14]
+  0x08018332  ldr      r3, [pc, #0x190]  ; 0x20001128
+  0x08018334  ldr      r0, [r3]
+  0x08018336  bl       #0x8019234
+  0x0801833a  cmp      r0, #1
+  0x0801833c  bne      #0x8018346
+  0x0801833e  ldr      r3, [pc, #0x188]  ; 0x200051cc
+  0x08018340  ldrb.w   r3, [r3, #0x47]
+  0x08018344  cbnz     r3, #0x8018352
+  0x08018346  ldr      r3, [pc, #0x184]  ; 0x20001098
+  0x08018348  ldr      r0, [r3]
+  0x0801834a  bl       #0x8012330
+  0x0801834e  cmp      r0, #2
+  0x08018350  beq      #0x8018356
+
+### 7c  0x080183cc  → 0x08019244 then TIM2
+
+  0x080183cc  ldr      r3, [pc, #0xf4]  ; 0x20001128
+  0x080183ce  ldr      r0, [r3]
+  0x080183d0  bl       #0x8019244
+  0x080183d4  cmp      r0, #0
+  0x080183d6  bne      #0x8018352
+  0x080183d8  ldr      r0, [pc, #0x100]  ; 0x20005534
+  0x080183da  bl       #0x800b0c6
+
+### 7d  0x08018522  → 0x08019234 then transport_cmd
+
+  0x08018522  ldr      r3, [pc, #0x58]  ; 0x20001128
+  0x08018524  ldr      r0, [r3]
+  0x08018526  bl       #0x8019234
+  0x0801852a  cbnz     r0, #0x8018550
+  0x0801852c  movs     r1, #1
+  0x0801852e  ldr      r3, [pc, #0x44]  ; 0x20001098
+  0x08018530  ldr      r0, [r3]
+  0x08018532  bl       #0x8012334
+
+### 7e  transport_cmd body writes BSRR on the same object (not IDR)
+
+  0x0801236a  ldr      r5, [pc, #0x2c8]  ; 0x20001128
+  0x0801236c  movs     r1, #1
+  0x0801236e  ldr      r0, [r5]
+  0x08012370  bl       #0x80191ce
+  0x08012374  movs     r1, #1
+  0x08012376  ldr      r0, [r5]
+  0x08012378  bl       #0x80191e6
+  0x0801237c  ldr      r3, [pc, #0x2b8]  ; 0x200010d8
+  0x0801237e  ldr      r0, [r3]
+  0x08012380  bl       #0x8019254
+  0x08012384  ldr      r0, [pc, #0x2b4]  ; 0x20005534
+  0x08012386  ldr      r2, [r0]
+  0x08012388  movs     r3, #0
+  0x0801238a  str      r3, [r2, #0x24]
+
+## 8. other 0x20001128 + 0x08019234/244 sites (not dumped)
+
+0x08006734  0x08006748  0x0800677c  0x08006790
+0x080183ba  0x0801854a  0x08018554  0x0801a48c
+0x0801217a  0x08012226  0x08012248  0x08012416
+0x08012760  0x08012f50  0x08012fe2  0x0801a3a6
+(those last eight are 0x080191ce / 0x080191e6 writes, not 8804)
+
+STATUS: done

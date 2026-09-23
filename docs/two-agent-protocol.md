@@ -126,14 +126,21 @@ These two files are in **different directories** — safe in parallel.
 
 ### Wave 4+
 
-Same pattern for HANDOFF layers 2, 4, 5, 6:
+Same pattern:
 
 - Cursor: `scans/<letter>-*.txt`
 - Claude: `model/<letter>-*.md` + `model/<letter>-proposed-catalog.md`
 - Cursor (next wave): catalog + `recreate.py` + short HANDOFF
 
+**Queue (parked 2026-09-22):** [`../firmware-re/notes/scans/tickets.md`](../firmware-re/notes/scans/tickets.md).
+That file is the letter list. It splits old D–G and adds L–Q.
+Do not invent a letter that is not in it.
+
 Letter sequence: **A** boot, **B** Shift-RAM, **C** main loop/IRQs,
-**D** analog/note buses, **E** time, **F** voice, **G** protocol overlay.
+**D** analog knobs, **E** keys, **F** button TBHs, **G** remaining ctors,
+**H** shared `0x200051cc`, **I** time, **J** voice, **K** protocol,
+**L** recorder, **M** chord/scale, **N** sync, **O** persist, **P** LED/DMA,
+**Q** promote H. USB stack and bootloader stay out.
 
 ---
 

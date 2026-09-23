@@ -1,0 +1,84 @@
+STATUS: done
+AGENT: cursor
+TICKET: P
+UPDATED: 2026-09-23T20:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; scans/L-record.txt
+
+# P-led — key writer and three DMA entries
+# Rec LED: still not found (L). No frame-atomicity claim.
+
+## 1. Writer 0x0800d26e
+
+33 static bls, all in 0x0800d2f2–0x0800daac. r1 is an index, rejected above 0x28.
+
+  0x0800d26e  30b5        push     {r4, r5, lr}
+  0x0800d270  83b0        sub      sp, #0xc
+  0x0800d272  0192        str      r2, [sp, #4]
+  0x0800d274  2829        cmp      r1, #0x28
+  0x0800d276  38d8        bhi      #0x0800d2ea
+  0x0800d278  01eb4101    add.w    r1, r1, r1, lsl #1
+  0x0800d27c  cd00        lsls     r5, r1, #3
+  0x0800d27e  05f16403    add.w    r3, r5, #0x64
+  0x0800d28c  0446        mov      r4, r0
+  0x0800d28e  00eb4302    add.w    r2, r0, r3, lsl #1
+  0x0800d292  0123        movs     r3, #1
+  0x0800d294  0432        adds     r2, #4
+
+The bytes land in the caller's r0, at (index*3*8 + 0x64)*2 + 4, with a store of 1. One caller of this shape is the scale-bit loop (scans/M-chord.txt, 0x0800d966).
+
+## 2. Refresh 0x0800d1f8
+
+One static bl: 0x0800d6c4. Reads two bytes of the same object and calls 0x0800b6ec with r0 = 0x200055a8.
+
+  0x0800d1f8  90f84439    ldrb.w   r3, [r0, #0x944]
+  0x0800d1fe  90f84629    ldrb.w   r2, [r0, #0x946]
+  0x0800d202  9342        cmp      r3, r2
+  0x0800d204  11d0        beq      #0x0800d22a
+  0x0800d20a  80f84639    strb.w   r3, [r0, #0x946]
+  0x0800d20e  4ff49463    mov.w    r3, #0x4a0
+  0x0800d212  021d        adds     r2, r0, #4
+  0x0800d214  0021        movs     r1, #0
+  0x0800d216  0548        ldr      r0, [pc, #0x14]   ; 0x200055a8
+  0x0800d218  fef768fa    bl       #0x0800b6ec
+
+## 3. DMA entries, 16 insns max
+
+0x080185e8. Clears through 0x0800786c on 0x20005300, then passes *0x200010f0 to 0x080045b6. That callee writes 0 at [r0,#0x40] and tails to [r0,#0x38].
+
+  0x080185e8  08b5        push     {r3, lr}
+  0x080185ea  0448        ldr      r0, [pc, #0x10]   ; 0x20005300
+  0x080185ec  eff73ef9    bl       #0x0800786c
+  0x080185f0  034b        ldr      r3, [pc, #0xc]    ; 0x200010f0
+  0x080185f2  1868        ldr      r0, [r3]
+  0x080185f4  ebf7dfff    bl       #0x080045b6
+  0x080185f8  08bd        pop      {r3, pc}
+
+  0x080045b6  08b5        push     {r3, lr}
+  0x080045b8  0023        movs     r3, #0
+  0x080045ba  80f84030    strb.w   r3, [r0, #0x40]
+  0x080045be  806b        ldr      r0, [r0, #0x38]
+  0x080045c0  fff7d1ff    bl       #0x08004566
+
+0x08018a40. Clears 0x20005570, then calls 0x0800d1f4.
+
+  0x08018a40  08b5        push     {r3, lr}
+  0x08018a42  0348        ldr      r0, [pc, #0xc]    ; 0x20005570
+  0x08018a44  eef712ff    bl       #0x0800786c
+  0x08018a48  f4f7d4fb    bl       #0x0800d1f4
+  0x08018a4c  08bd        pop      {r3, pc}
+
+  0x0800d1f4  7047        bx       lr
+
+The key refresh is the next push, 0x0800d1f8. This IRQ does not bl it.
+
+0x080186c4. Clears 0x20005484 and returns. No buffer read.
+
+  0x080186c4  08b5        push     {r3, lr}
+  0x080186c6  0248        ldr      r0, [pc, #8]      ; 0x20005484
+  0x080186c8  eff7d0f8    bl       #0x0800786c
+  0x080186cc  08bd        pop      {r3, pc}
+
+## 4. Missing
+
+Rec LED writer: not in L, and not a separate bl from the Rec cases.
+Which DMA channel is key LEDs vs something else: 0x080185e8 touches a buffer via *0x200010f0; 0x08018a40 and 0x080186c4 do not read an LED buffer.

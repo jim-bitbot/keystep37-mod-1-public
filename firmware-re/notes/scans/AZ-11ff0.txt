@@ -1,0 +1,75 @@
+STATUS: done
+AGENT: cursor
+TICKET: AZ
+UPDATED: 2026-09-23T22:15+01:00
+INPUT: scans/AY-exti0.txt; firmware bin
+
+# AZ-11ff0 — 0x08011ff0 body and callers
+
+## 1. body
+
+  0x08011ff0  push     {r3, lr}
+  0x08011ff2  cbnz     r1, #0x801201c
+  0x08011ff4  ldr      r1, [r0, #0x38]
+  0x08011ff6  cmp      r1, #0
+  0x08011ff8  blt      #0x801203a
+  0x08011ffa  ldrb     r3, [r0, #0x10]
+  0x08011ffc  subs     r3, #1
+  0x08011ffe  cmp      r1, r3
+  0x08012000  bge      #0x8012040
+  0x08012002  adds     r1, #1
+  0x08012004  str      r1, [r0, #0x38]
+  0x08012006  uxtb     r1, r1
+  0x08012008  ldr      r0, [r0, #0x50]
+  0x0801200a  bl       #0x801415c
+  0x0801200e  movs     r2, #1
+  0x08012010  movs     r1, #4
+  0x08012012  ldr      r3, [pc, #0x30]  ; 0x20001120
+  0x08012014  ldr      r0, [r3]
+  0x08012016  bl       #0x801d76c
+  0x0801201a  pop      {r3, pc}
+  0x0801201c  ldr      r1, [r0, #0x38]
+  0x0801201e  bic.w    r1, r1, r1, asr #31
+  0x08012022  str      r1, [r0, #0x38]
+  0x08012024  uxtb     r1, r1
+  0x08012026  ldr      r0, [r0, #0x50]
+  0x08012028  bl       #0x8013e8c
+  0x0801202c  movs     r2, #0
+  0x0801202e  movs     r1, #4
+  0x08012030  ldr      r3, [pc, #0x10]  ; 0x20001120
+  0x08012032  ldr      r0, [r3]
+  0x08012034  bl       #0x801d76c
+  0x08012038  b        #0x801201a
+  0x0801203a  movs     r3, #0
+  0x0801203c  str      r3, [r0, #0x38]
+  0x0801203e  b        #0x801201a
+  0x08012040  movs     r1, #0
+  0x08012042  b        #0x8012004
+
+r1==0: ++[+0x38] then seq_step_release. r1!=0: clamp +0x38 then play_time_step.
+
+## 2. callers
+
+bl: 1 → 0x080183c6
+Thumb ptr 0x08011ff1: 0
+
+  0x080183a8  ldr      r3, [pc, #0x124]  ; 0x20001124
+  0x080183aa  ldr      r3, [r3]
+  0x080183ac  ldrb     r3, [r3, #0x10]
+  0x080183ae  cmp      r3, #2
+  0x080183b0  bne      #0x8018352
+  0x080183b2  ldr      r3, [pc, #0x118]  ; 0x20001098
+  0x080183b4  ldr      r4, [r3]
+  0x080183b6  ldr      r3, [pc, #0x10c]  ; 0x20001128
+  0x080183b8  ldr      r0, [r3]
+  0x080183ba  bl       #0x8019244
+  0x080183be  clz      r1, r0
+  0x080183c2  lsrs     r1, r1, #5
+  0x080183c4  mov      r0, r4
+  0x080183c6  bl       #0x8011ff0
+
+This is inside EXTI0 0x0801831c (AY). r0 = *0x20001098.
+r1 = 0 if IDR pin was 1, 1 if pin was 0 (clz/lsr of 0/1).
+Gated on *0x20001124+0x10 == 2.
+
+STATUS: done

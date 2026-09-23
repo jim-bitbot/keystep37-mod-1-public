@@ -1,0 +1,99 @@
+STATUS: done
+AGENT: cursor
+TICKET: K
+UPDATED: 2026-09-23T20:05+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; stock-shift-map.md §10 IDs
+
+# K-protocol — GET table on a signed byte
+# The TBB is not the §10 control-ID list. Mode, Time Div, Type, Notes
+# are not special cases here.
+
+## 1. TBB 0x0800ee92
+
+Stored pointer 0x0801e9b0 → 0x0800ee83.
+r2==0 falls in. r2!=0 branches to 0x0800ef2e (bx lr). No SET body on that branch.
+
+  0x0800ee82  002a        cmp      r2, #0
+  0x0800ee84  53d1        bne      #0x0800ef2e
+  0x0800ee86  08b5        push     {r3, lr}
+  0x0800ee88  91f90030    ldrsb.w  r3, [r1]
+  0x0800ee8c  013b        subs     r3, #1
+  0x0800ee8e  7e2b        cmp      r3, #0x7e
+  0x0800ee90  44d8        bhi      #0x0800ef1c
+  0x0800ee92  dfe803f0    tbb      [pc, r3]
+
+Index is ([r1] as signed) − 1. Table base 0x0800ee96, 127 bytes.
+Four targets:
+
+  index → byte at [r1] → target
+  0x1, 0xb, 0x20, 0x22, 0x24–0x25
+      → bytes 0x2, 0xc, 0x21, 0x23, 0x25, 0x26
+      → 0x0800ef16  adds r0, #0x28; bl 0x0800614c
+  0x0, 0x8, 0xa, 0x1f, 0x21, 0x23, 0x7e
+      → bytes 0x1, 0x9, 0xb, 0x20, 0x22, 0x24, 0x7f
+      → 0x0800ef1e  adds r0, #0x38; bl 0x08005e84
+  0x4–0x7, 0x9, 0xe
+      → bytes 0x5, 0x6, 0x7, 0x8, 0xa, 0xf
+      → 0x0800ef26  adds r0, #0x48; bl 0x080060c4
+  the other 108 indexes, and the bhi
+      → 0x0800ef1c  pop {r3, pc}
+
+## 2. get_param 0x08005e84
+
+One static bl: 0x0800ef20. Thumb pointer at 0x0801def0.
+Incoming r1 is kept in r6. Later:
+
+  0x08005f56  96f90030    ldrsb.w  r3, [r6]
+  0x08005f5a  202b        cmp      r3, #0x20
+  0x08005f5c  23d0        beq      #0x08005fa6
+  0x08005f5e  18dc        bgt      #0x08005f92
+  0x08005f60  092b        cmp      r3, #9
+  0x08005f64  0b2b        cmp      r3, #0xb
+  0x08005f68  012b        cmp      r3, #1
+
+Above 0x20 the compares are #0x24, #0x7f, #0x22 (0x08005f92–0x08005fa4).
+On the byte==1 path, a second byte is tested:
+
+  0x08005f76  7378        ldrb     r3, [r6, #1]
+  0x08005f78  3f2b        cmp      r3, #0x3f
+  0x08005f7a  20d8        bhi      #0x08005fbe
+  0x08005fbe  412b        cmp      r3, #0x41
+
+That #0x41 is [r6,#1], not the TBB byte.
+
+## 3. Other two slots
+
+0x0800614c: same prologue shape as get_param (r5=r0, r6=r1, load *0x20000214 into [r5,#4]).
+0x080060c4:
+
+  0x080060c6  91f90030    ldrsb.w  r3, [r1]
+  0x080060ca  082b        cmp      r3, #8
+  0x080060ce  8b78        ldrb     r3, [r1, #2]
+  0x080060d0  402b        cmp      r3, #0x40
+
+## 4. Sibling 0x0800ef38
+
+Pointer 0x0801e9b4. r2!=0 goes to 0x0800f044 (bx lr).
+Next push is param_field_dispatch 0x0800f054: ldrb [r0,#0x3c], subs #1, cmp #0x29, tbh. Not this TBB.
+
+## 5. chord_test_dispatch 0x08005df8
+
+  0x08005dfe  692a        cmp      r2, #0x69
+  0x08005e00  16d1        bne      #0x08005e30
+
+0x69 matches: bl 0x0800d3e4 with r0=0x200013fc.
+Not 0x69: bl id_to_index 0x08006024, then bl 0x0801d76c.
+No static bl to 0x08005df8. No Thumb pointer in the image.
+
+## 6. §10 IDs in this scan
+
+Not special cases of the TBB (those indexes fall through to the pop):
+  Mode 0x15, Time Div 0x68, Type 0x62, Notes 0x63,
+  Vel 0x64, Strum 0x65, Rate 0x66, Chord 0x69,
+  Seq/Arp 0x12, keys 0x55/0x56/0x10/0x11/0x67/0x57/0x59/0x5a.
+
+Present elsewhere, not as this TBB index:
+  0x40 compared at 0x080060d0 inside 0x080060c4 (second byte [r1,#2]).
+  0x41 compared at 0x08005fbe inside get_param (second byte [r6,#1]).
+  Button IDs are the cmp chain at id_to_index 0x08006024.
+  Chord 0x69 is the cmp at 0x08005dfe.

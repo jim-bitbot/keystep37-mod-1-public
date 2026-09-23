@@ -1,0 +1,59 @@
+STATUS: done
+AGENT: cursor
+TICKET: AW
+UPDATED: 2026-09-23T22:15+01:00
+INPUT: scans/AR-init-sweeps.txt; firmware bin
+
+# AW-plus44 — stores to 0x200051cc+0x44
+# Tracked-reg after a pc-rel 0x200051cc load, 24-insn window.
+
+## 1. tracked 051cc then str #0x44
+
+count 0  (boot write is via bl 0x08015d6c, r0 already the base)
+
+## 2. boot writer 0x08015d6c  (from shared_block_init)
+
+  0x08015f84  ldr      r0, [pc, #0x14]  ; 0x200051cc
+  0x08015f86  movs     r3, #0
+  0x08015f88  str      r3, [r0, #0x34]
+  0x08015f8a  str      r3, [r0, #0x38]
+  0x08015f8c  ldr      r2, [pc, #0x10]  ; 0x0801ec54
+  0x08015f8e  str      r2, [r0]
+  0x08015f90  str.w    r3, [r0, #0xbc]
+  0x08015f94  bl       #0x8015d6c
+
+  0x08015d6c  push     {r4, r5, r6}
+  0x08015d6e  movs     r3, #0
+  0x08015d70  strb.w   r3, [r0, #0x3f]
+  0x08015d74  movs     r2, #0x41
+  0x08015d76  strb.w   r2, [r0, #0x40]
+  0x08015d7a  strb.w   r2, [r0, #0x3d]
+  0x08015d7e  strb.w   r3, [r0, #0x3e]
+  0x08015d82  movs     r4, #2
+  0x08015d84  strb.w   r4, [r0, #0x41]
+  0x08015d88  strb.w   r3, [r0, #0x42]
+  0x08015d8c  strb.w   r3, [r0, #0x43]
+  0x08015d90  movs     r1, #3
+  0x08015d92  strb.w   r1, [r0, #0x44]
+  0x08015d96  movs     r1, #0xf
+  0x08015d98  strb.w   r1, [r0, #0x45]
+  0x08015d9c  movs     r5, #4
+  0x08015d9e  strb.w   r5, [r0, #0x46]
+  0x08015da2  strb.w   r3, [r0, #0x47]
+  0x08015da6  strb.w   r3, [r0, #0x48]
+
+bl 0x08015d6c: only 0x08015f94
+
+## 3. other strb [r0,#0x44]  0x0800f226  (not after a 051cc literal)
+
+  0x0800f224  sxtb     r1, r1
+  0x0800f226  strb.w   r1, [r0, #0x44]
+  0x0800f22a  subs     r1, #3
+  0x0800f22c  cmp      r1, #0xb
+  0x0800f22e  bhi      #0x800f26a
+  0x0800f230  tbb      [pc, r1]
+
+r0 here is loaded from [r4 + r5*4 + 0x18] at 0x0800f20e, not a 051cc
+pc-rel. Object identity not shown in this window.
+
+STATUS: done

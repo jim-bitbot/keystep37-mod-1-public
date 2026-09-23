@@ -1,0 +1,188 @@
+STATUS: done
+AGENT: cursor
+TICKET: AT
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/AE-tap-clear.txt; model/AE-proposed-catalog.md; firmware bin
+
+# AT-keyscan-oct — key_scan 0x0800cc48 own body for Oct−+Oct+
+# AE: three negatives in Shift-RAM / button dispatch; next is this fn.
+# Compact index 2/3 = Oct−/Oct+. id_to_index is 0x08006024.
+# End is first pop-pc 0x0800d112. USB not walked.
+
+## 1. bounds / bl (0x0800cc48–0x0800d112)
+
+17 bl
+
+  0x0800cd54  bl 0x0800cbe8
+  0x0800cd5a  bl 0x0800c44e
+  0x0800cd7c  bl 0x0800cc28
+  0x0800cdfa  bl 0x0801b750
+  0x0800ce26  bl 0x0800c606
+  0x0800ce90  bl 0x0801cd5a
+  0x0800cea2  bl 0x08017038
+  0x0800ceba  bl 0x08017100
+  0x0800cef0  bl 0x0800c606
+  0x0800cf30  bl 0x0801b750
+  0x0800cf96  bl 0x08016ed8
+  0x0800cfb8  bl 0x08011874
+  0x0800cfca  bl 0x0801d178
+  0x0800d064  bl 0x0801b750
+  0x0800d0a4  bl 0x08017038
+  0x0800d0ce  bl 0x0800cba6
+  0x0800d0d8  bl 0x0800cb64
+
+bl 0x08006024: 0
+
+## 2. every cmp in the body
+
+  0x0800cc80  cmp r6, #7
+  0x0800cc8c  cmp r5, #0x24
+  0x0800ccb6  cmp r3, #0x1a
+  0x0800cd36  cmp r3, #0
+  0x0800cd4a  cmp r3, r2
+  0x0800cd66  cmp r3, #0
+  0x0800cd6e  cmp r2, #0
+  0x0800cd76  cmp r2, #0
+  0x0800cd8e  cmp r3, #0
+  0x0800cda2  cmp r3, #0
+  0x0800ce34  cmp r2, #0
+  0x0800ce38  cmp r3, #0
+  0x0800ce40  cmp r3, #0
+  0x0800ce4c  cmp r3, #1
+  0x0800ce56  cmp r3, #0xf
+  0x0800ce68  cmp r3, #0x40
+  0x0800ce78  cmp r3, #1
+  0x0800cebe  cmp r0, #0
+  0x0800ceca  cmp.w sb, #0
+  0x0800cf9e  cmp r3, #0
+  0x0800cfbc  cmp r0, #6
+  0x0800cfd4  cmp r3, #0
+  0x0800cfe4  cmp r3, #0
+  0x0800d03a  cmp.w r8, #0
+  0x0800d0c6  cmp r7, #4
+  0x0800d0ea  cmp r1, r2
+  0x0800d0f8  cmp r0, r2
+
+cmp #2: 0
+cmp #3: 0
+cmp #0x11 / #0x12 / #0x67: 0
+tbb/tbh: 0
+
+## 3. only #2 in the body — store, not a compare
+
+  0x0800cd7a  mov      r0, r4
+  0x0800cd7c  bl       #0x800cc28
+  0x0800cd80  cbnz     r0, #0x800cd88
+  0x0800cd82  ldr      r3, [pc, #0x1e4]  ; 0x200010d3
+  0x0800cd84  movs     r2, #2
+  0x0800cd86  strb     r2, [r3]
+  0x0800cd88  ldr      r3, [pc, #0x1e0]  ; 0x200051cc
+  0x0800cd8a  ldrb.w   r3, [r3, #0xb9]
+  0x0800cd8e  cmp      r3, #0
+  0x0800cd90  beq      #0x800ce22
+
+## 4. own dispatch (not button TBH)
+
+  0x0800cc80  cmp      r6, #7
+  0x0800cc82  bhi.w    #0x800d0c2
+  0x0800cc86  add.w    r5, r6, r7, lsl #3
+  0x0800cc8a  uxtb     r5, r5
+  0x0800cc8c  cmp      r5, #0x24
+  0x0800cc8e  bhi.w    #0x800d0c2
+  0x0800cc92  ldrh     r3, [r4, #8]
+  0x0800cc94  asrs     r3, r6
+  0x0800cc96  and      r1, r3, #1
+  0x0800cc9a  strh     r1, [r4, #0x20]
+  0x0800cc9c  ldrh     r2, [r4, #0xa]
+  0x0800cc9e  asrs     r2, r6
+  0x0800cca0  and      r3, r2, #1
+  0x0800cca4  strh     r3, [r4, #0x22]
+  0x0800cca6  adds     r2, r4, r5
+  0x0800cca8  ldrb.w   r2, [r2, #0x4d]
+  0x0800ccac  add.w    r3, r3, r1, lsl #1
+  0x0800ccb0  add      r3, r2
+  0x0800ccb2  uxtb     r3, r3
+  0x0800ccb4  subs     r3, #2
+  0x0800ccb6  cmp      r3, #0x1a
+  0x0800ccb8  bhi      #0x800cc62
+  0x0800ccba  adr      r2, #4
+  0x0800ccbc  ldr.w    pc, [r2, r3, lsl #2]
+
+## 5. B site 05 (already in F/AE) — Shift / Rec / 0x20001084, not Oct pair
+
+  0x0800cd62  ldr      r3, [pc, #0x1f8]  ; 0x200010d2
+  0x0800cd64  ldrb     r3, [r3]
+  0x0800cd66  cmp      r3, #0
+  0x0800cd68  bne      #0x800ce30
+  0x0800cd6a  ldr      r2, [pc, #0x1f4]  ; 0x200010b6
+  0x0800cd6c  ldrb     r2, [r2]
+  0x0800cd6e  cmp      r2, #0
+  0x0800cd70  bne      #0x800ce30
+  0x0800cd72  ldr      r2, [pc, #0x1f0]  ; 0x20001084
+  0x0800cd74  ldrb     r2, [r2]
+  0x0800cd76  cmp      r2, #0
+  0x0800cd78  bne      #0x800ce30
+
+## 6. B site 06
+
+  0x0800cfd0  ldr      r3, [pc, #0x148]  ; 0x20001084
+  0x0800cfd2  ldrb     r3, [r3]
+  0x0800cfd4  cmp      r3, #0
+  0x0800cfd6  bne      #0x800d098
+  0x0800cfd8  ldr      r3, [pc, #0x150]  ; 0x200010d2
+  0x0800cfda  ldrb     r3, [r3]
+  0x0800cfdc  cbz      r3, #0x800cffe
+
+## 7. one-level helpers that have #2 or #3
+
+### 7a  0x0800cbe8  (+0x42, not button index)
+
+  0x0800cbe8  ldr      r3, [pc, #0x24]  ; 0x200051cc
+  0x0800cbea  ldrb.w   r3, [r3, #0x42]
+  0x0800cbee  cmp      r3, #1
+  0x0800cbf0  beq      #0x800cc04
+  0x0800cbf2  cbz      r3, #0x800cbfe
+  0x0800cbf4  cmp      r3, #2
+  0x0800cbf6  beq      #0x800cc0a
+  0x0800cbf8  ldr.w    r0, [r0, #0x124]
+  0x0800cbfc  bx       lr
+
+### 7b  0x0800cba6 / 0x0800cb64  (r1 bound #3)
+
+  0x0800cba6  push     {r4, r5, r6, lr}
+  0x0800cba8  mov      r6, r0
+  0x0800cbaa  mov      r4, r1
+  0x0800cbac  cmp      r1, #3
+  0x0800cbae  bls      #0x800cbc2
+  0x0800cbb0  lsls     r1, r1, #1
+  0x0800cbb2  and      r1, r1, #0xfe
+  0x0800cbb6  ldr      r0, [r0, #4]
+  0x0800cbb8  bl       #0x8019172
+
+  0x0800cb64  push     {r4, r5, r6, lr}
+  0x0800cb66  mov      r6, r0
+  0x0800cb68  mov      r4, r1
+  0x0800cb6a  cmp      r1, #3
+  0x0800cb6c  bls      #0x800cb80
+
+### 7c  0x0800cc28  (two words at +0x108; returns 0/1)
+
+  0x0800cc28  add.w    r0, r0, #0x108
+  0x0800cc2c  movs     r3, #0
+  0x0800cc2e  cmp      r3, #1
+  0x0800cc30  bhi      #0x800cc3e
+  0x0800cc32  ldr.w    r2, [r0, r3, lsl #2]
+  0x0800cc36  cbnz     r2, #0x800cc42
+  0x0800cc38  adds     r3, #1
+  0x0800cc3a  uxtb     r3, r3
+  0x0800cc3c  b        #0x800cc2e
+  0x0800cc3e  movs     r0, #0
+  0x0800cc40  bx       lr
+  0x0800cc42  movs     r0, #1
+  0x0800cc44  bx       lr
+
+## 8. simultaneous Oct−+Oct+ in this fn
+
+not found (no compact-index 2-and-3 test; no id_to_index)
+
+STATUS: done

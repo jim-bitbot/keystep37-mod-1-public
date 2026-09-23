@@ -1,0 +1,20 @@
+STATUS: done
+AGENT: cursor
+TICKET: AL
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/AH-10638.txt; firmware bin
+
+# AL-1509a — callers of ring_consume 0x0801509a
+
+## 1. bl-to 0x0801509a
+
+count 0 []
+
+## 2. Thumb ptr word == 0x0801509b
+
+count 0
+
+## 3. bl-to 0x08010638 (AH already: only 0x080150a4)
+
+['0x80150a4']
+

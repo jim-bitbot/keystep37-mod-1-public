@@ -1,0 +1,385 @@
+STATUS: done
+AGENT: cursor
+TICKET: AA
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/I-time.txt; scans/N-05534.txt; scans/T-clock-source.txt; firmware bin
+
+# AA-swing-tempo — tick stores, occupancy swing values, TIM2 ARR writers
+
+# Slot +0x401 name stays H until a reader in this file.
+
+## 1. pc-rel of tick object 0x20002bec
+
+count 6
+
+  0x08014ed8  ldr.w    r8, [pc, #0x1ac]
+  0x08014ed8  ldr.w    r8, [pc, #0x1ac]  ; 0x20002bec
+  0x08014edc  mov      r0, r8
+  0x08014ede  bl       #0x8011d7c
+  0x08014ee2  ldr      r0, [pc, #0x154]  ; 0x20004f18
+  0x08014ee4  bl       #0x8019274
+  0x08014ee8  ldr      r0, [pc, #0x150]  ; 0x20002dfc
+  0x08014eea  bl       #0x8013c9a
+  0x08014eee  ldr      r0, [pc, #0x150]  ; 0x20002d0c
+
+  0x08015304  ldr      r5, [pc, #0x164]
+  0x08015304  ldr      r5, [pc, #0x164]  ; 0x20002bec
+  0x08015306  movs     r3, #2
+  0x08015308  str      r3, [sp]
+  0x0801530a  movw     r3, #0x2ee0
+  0x0801530e  mov      r2, r6
+  0x08015310  mov      r1, r4
+  0x08015312  mov      r0, r5
+  0x08015314  bl       #0x80120ac
+
+  0x080154c6  ldr      r2, [pc, #0x1bc]
+  0x080154c6  ldr      r2, [pc, #0x1bc]  ; 0x20002bec
+  0x080154c8  ldr      r1, [pc, #0x1bc]  ; 0x200051cc
+  0x080154ca  mov      r0, r5
+  0x080154cc  bl       #0x800fa16
+  0x080154d0  ldr      r3, [pc, #0x1b8]  ; 0x200010e0
+  0x080154d2  str      r5, [r3]
+  0x080154d4  cmp      r4, #0x29
+  0x080154d6  bhi      #0x80154f0
+
+  0x08015768  ldr      r4, [pc, #0x254]
+  0x08015768  ldr      r4, [pc, #0x254]  ; 0x20002bec
+  0x0801576a  mov      r0, r4
+  0x0801576c  bl       #0x80129cc
+  0x08015770  ldr      r0, [pc, #0x244]  ; 0x200005f8
+  0x08015772  bl       #0x8004646
+  0x08015776  ldr      r0, [pc, #0x24c]  ; 0x20000468
+  0x08015778  bl       #0x8004918
+  0x0801577c  ldr      r0, [pc, #0x22c]  ; 0x200004f4
+
+  0x080157e6  ldr      r0, [pc, #0x1d8]
+  0x080157e6  ldr      r0, [pc, #0x1d8]  ; 0x20002bec
+  0x080157e8  bl       #0x80129cc
+  0x080157ec  ldr      r3, [pc, #0x1b8]  ; 0x20002ddc
+  0x080157ee  ldrb     r3, [r3, #0x1c]
+  0x080157f0  cmp      r3, #2
+  0x080157f2  beq      #0x8015802
+  0x080157f4  ldr      r3, [pc, #0x1fc]  ; 0x200051cc
+  0x080157f6  ldrb.w   r3, [r3, #0x44]
+
+  0x08015802  ldr      r0, [pc, #0x1bc]
+  0x08015802  ldr      r0, [pc, #0x1bc]  ; 0x20002bec
+  0x08015804  bl       #0x8012330
+  0x08015808  cmp      r0, #2
+  0x0801580a  beq.w    #0x8015914
+  0x0801580e  ldr      r3, [pc, #0x1f0]  ; 0x20001120
+  0x08015810  ldr      r0, [r3]
+  0x08015812  bl       #0x801d7c8
+  0x08015816  ldr      r4, [pc, #0x1ec]  ; 0x20002e88
+
+
+## 2. stores in windows after those loads (any offset)
+
+from load 0x08015304
+  0x08015308  str      r3, [sp]
+  0x0801531a  str      r5, [r3]
+  0x08015320  str      r2, [r3]
+  0x08015326  strb     r2, [r3]
+  0x0801532a  strb     r2, [r3, #1]
+
+from load 0x080154c6
+  0x080154d2  str      r5, [r3]
+
+from load 0x080157e6
+  0x08015800  strb     r2, [r3]
+
+
+## 3. occupancy swing values as cmp/mov/strb imm
+
+count 218 (cmp/mov/strb only)
+
+  0x0800479c  movs     r2, #0x3c
+  0x08005b56  movw     r3, #0x239
+  0x08005b58  movs     r3, #0x39
+  0x08005f78  cmp      r3, #0x3f
+  0x08005fce  movs     r0, #0x3c
+  0x08006284  cmp      r0, #0x3f
+  0x0800631e  movs     r0, #0x3f
+  0x0800647e  strb.w   r2, [sp, #0x34]
+  0x08006480  movs     r0, #0x34
+  0x08006488  strb.w   r3, [sp, #0x36]
+  0x08006510  movs     r2, #0x3f
+  0x0800651e  movs     r2, #0x3f
+  0x0800652c  movs     r3, #0x3f
+  0x080065cc  strb.w   r3, [sp, #0x43]
+  0x080076a2  cmp      r3, #0x3c
+  0x0800889e  strb.w   r3, [r4, #0x34]
+  0x080088b8  strb.w   r3, [r4, #0x34]
+  0x0800892e  strb.w   r3, [r6, #0x34]
+  0x08008982  strb.w   r3, [r6, #0x34]
+  0x08008bea  strb.w   r3, [r0, #0x34]
+  0x08008c5a  strb.w   r3, [r4, #0x34]
+  0x08008c8c  strb.w   r3, [r4, #0x34]
+  0x08008c96  strb.w   r3, [r4, #0x34]
+  0x08008cfc  strb.w   r2, [r4, #0x34]
+  0x08008cfe  movs     r0, #0x34
+  0x08008d72  strb.w   r3, [r4, #0x34]
+  0x08008da6  strb.w   r3, [r4, #0x34]
+  0x08008db0  strb.w   r3, [r4, #0x34]
+  0x08008efa  strb.w   r3, [r4, #0x34]
+  0x0800b096  strb.w   r3, [r0, #0x39]
+  0x0800b0a6  strb.w   r3, [r0, #0x39]
+  0x0800b0fc  strb.w   r3, [r0, #0x39]
+  0x0800b106  strb.w   r3, [r0, #0x39]
+  0x0800b12c  strb.w   r3, [r0, #0x39]
+  0x0800b1bc  strb.w   r3, [r4, #0x39]
+  0x0800b234  strb.w   r3, [r0, #0x39]
+  0x0800b250  strb.w   r5, [r4, #0x39]
+  0x0800b26e  strb.w   r3, [r4, #0x39]
+  0x0800b430  strb.w   r3, [r0, #0x39]
+  0x0800b4da  strb.w   r3, [r4, #0x39]
+  0x0800b4e8  strb.w   r3, [r4, #0x39]
+  0x0800b50c  strb.w   r3, [r4, #0x39]
+  0x0800b51a  strb.w   r3, [r4, #0x39]
+  0x0800b5b6  strb.w   r3, [r0, #0x39]
+  0x0800b5f6  strb.w   r3, [r4, #0x39]
+  0x0800b722  strb.w   r4, [r0, #0x39]
+  0x0800b7fe  strb.w   r3, [r0, #0x39]
+  0x0800b820  strb.w   r2, [r0, #0x39]
+  0x0800b822  movs     r0, #0x39
+  0x0800b846  strb.w   r3, [r0, #0x39]
+  0x0800b872  strb.w   r2, [r0, #0x39]
+  0x0800b874  movs     r0, #0x39
+  0x0800b9b2  strb.w   r3, [r4, #0x39]
+  0x0800b9ea  strb.w   r3, [r4, #0x39]
+  0x0800c80a  movs     r2, #0x3c
+  0x0800c84a  strb.w   r1, [r2, #0x143]
+  0x0800c9a0  mov.w    sb, #0x3c
+  0x0800cad6  movs     r3, #0x39
+  0x0800cdf2  strb.w   r0, [sb, #0x143]
+  0x0800cf28  strb.w   r0, [fp, #0x143]
+  0x0800d00c  movs     r1, #0x43
+  0x0800d258  movs     r5, #0x3c
+  0x0800d282  movw     r2, #0x43c
+  0x0800d2a2  movw     r2, #0x43c
+  0x0800d2be  movw     r3, #0x43c
+  0x0800d9b6  cmp      r1, #0x4b
+  0x0800ecd4  movs     r2, #0x3c
+  0x0800f0ce  strb.w   r3, [r0, #0x3c]
+  0x0800f0fa  strb.w   r3, [r0, #0x3c]
+  0x0800f102  strb.w   r3, [r0, #0x3c]
+  0x0800f12e  strb.w   r3, [r0, #0x3c]
+  0x0800f136  strb.w   r3, [r0, #0x3c]
+  0x0800f142  strb.w   r3, [r0, #0x3c]
+  0x0800f154  strb.w   r3, [r0, #0x3c]
+  0x0800f17a  strb.w   r3, [r0, #0x3c]
+  0x0800f18c  strb.w   r3, [r0, #0x3c]
+  0x0800f1ba  strb.w   r3, [r0, #0x3c]
+  0x0800f1cc  strb.w   r3, [r4, #0x3c]
+  0x0800f1f2  strb.w   r3, [r0, #0x3c]
+  0x0800f204  strb.w   r3, [r0, #0x3c]
+  ... 138 more
+
+## 4. +0x401 (0x401 / 1025) immediates near slot / store
+
+count 6
+
+  0x08011fc6  ldrb.w   r3, [r5, #0x401]
+  0x08011fc6  ldrb.w   r3, [r5, #0x401]
+  0x08011fca  uxth     r4, r4
+  0x08011fcc  b        #0x8011fbc
+  0x08011fce  ldrb     r3, [r6, #0xc]
+  0x08011fd0  cmp      r3, #2
+  0x08011fd2  beq      #0x8011fd6
+
+  0x08013130  strb.w   r1, [r3, #0x401]
+  0x08013130  strb.w   r1, [r3, #0x401]
+  0x08013134  ldr      r2, [r0]
+  0x08013136  ldrb.w   r3, [r2, #0x403]
+  0x0801313a  orr      r3, r3, #2
+  0x0801313e  strb.w   r3, [r2, #0x403]
+  0x08013142  bx       lr
+
+  0x0801314e  ldrb.w   r0, [r3, #0x401]
+  0x0801314e  ldrb.w   r0, [r3, #0x401]
+  0x08013152  bx       lr
+  0x08013154  push     {r3, lr}
+  0x08013156  strb.w   r1, [r0, #0x2e]
+  0x0801315a  add.w    r1, r0, #8
+  0x0801315e  bl       #0x801302e
+
+  0x0801445c  strb.w   r3, [r0, #0x401]
+  0x0801445c  strb.w   r3, [r0, #0x401]
+  0x08014460  b        #0x801444a
+  0x08014462  ldrb     r3, [r1, #0xd]
+  0x08014464  strb.w   r3, [r0, #0x402]
+  0x08014468  b        #0x801444a
+  0x0801446a  ldrb     r5, [r1, #0xb]
+
+  0x08014598  strb.w   r3, [r2, #0x401]
+  0x08014598  strb.w   r3, [r2, #0x401]
+  0x0801459c  b        #0x8014574
+  0x0801459e  ldrsh.w  r3, [r1, #4]
+  0x080145a2  strb.w   r3, [r2, #0x402]
+  0x080145a6  b        #0x8014574
+  0x080145a8  ldrsh.w  r3, [r1, #4]
+
+  0x080146ae  ldrb.w   r3, [r4, #0x401]
+  0x080146ae  ldrb.w   r3, [r4, #0x401]
+  0x080146b2  strb     r3, [r1, #0xd]
+  0x080146b4  b        #0x80146aa
+  0x080146b6  ldrb.w   r3, [r4, #0x402]
+  0x080146ba  strb     r3, [r1, #0xd]
+  0x080146bc  b        #0x80146aa
+
+
+## 5. TIM2 ARR [r0,#0x2c] after load of 0x20005534, besides 0x08012084
+
+ARR stores in 32-insn windows after 0x20005534 loads: 1
+
+  load 0x0801207e  store 0x08012084  str r3, [r0, #0x2c]
+
+0x08012084 window (known):
+
+  0x08012070  lsls     r3, r0, #8
+  0x08012072  asrs     r3, r3, #0x1f
+  0x08012074  rsb      r3, r3, r2, asr #2
+  0x08012078  ldr      r2, [pc, #0x20]  ; 0xd693a400
+  0x0801207a  udiv     r3, r2, r3
+  0x0801207e  ldr      r2, [pc, #0x20]  ; 0x20005534
+  0x08012080  ldr      r0, [r2]
+  0x08012082  subs     r3, #1
+  0x08012084  str      r3, [r0, #0x2c]
+  0x08012086  str      r3, [r2, #0xc]
+  0x08012088  ldr      r3, [pc, #0x18]  ; 0x51eb851f
+  0x0801208a  umull    r3, r1, r3, r1
+  0x0801208e  lsrs     r1, r1, #5
+  0x08012090  ldr      r0, [pc, #0x14]  ; 0x20001e04
+  0x08012092  bl       #0x801b28c
+  0x08012096  pop      {r3, pc}
+
+## 6. any str* #0x2c in app (noisy; filter later)
+
+count 41
+
+  0x080040b0  strh     r5, [r0, #0x2c]
+  0x080045f0  str      r5, [r4, #0x2c]
+  0x08005632  str      r3, [sp, #0x2c]
+  0x08006f64  str      r3, [r0, #0x2c]
+  0x08007086  str      r2, [r6, #0x2c]
+  0x08007188  str      r3, [r4, #0x2c]
+  0x08007218  str      r3, [r4, #0x2c]
+  0x0800722a  str      r2, [r3, #0x2c]
+  0x080072a6  str      r3, [r4, #0x2c]
+  0x0800731a  str      r3, [r4, #0x2c]
+  0x080073b6  str      r3, [r5, #0x2c]
+  0x080073d6  str      r3, [r4, #0x2c]
+  0x080073dc  str      r3, [r0, #0x2c]
+  0x0800742c  str      r1, [r4, #0x2c]
+  0x08007448  str      r3, [r4, #0x2c]
+  0x080092d0  str      r2, [r0, #0x2c]
+  0x0800a2d4  str      r0, [r4, #0x2c]
+  0x0800b4aa  str      r3, [r0, #0x2c]
+  0x0800bb9a  str      r2, [r0, #0x2c]
+  0x0800c14a  str      r2, [r0, #0x2c]
+  0x0800c236  str      r2, [r0, #0x2c]
+  0x0800d02c  str      r3, [sp, #0x2c]
+  0x08011dc0  str      r2, [r0, #0x2c]
+  0x08012084  str      r3, [r0, #0x2c]
+  0x08012cdc  str      r6, [r2, #0x2c]
+  0x08012dc2  str      r0, [r3, #0x2c]
+  0x08012e08  str      r0, [r5, #0x2c]
+  0x0801305c  strb.w   r3, [r0, #0x2c]
+  0x08013076  strb.w   r5, [r0, #0x2c]
+  0x08013578  strb.w   r5, [r4, #0x2c]
+  0x0801377c  strb.w   r7, [r4, #0x2c]
+  0x08014cb2  strh     r3, [r4, #0x2c]
+  0x08014f1c  str      r7, [sp, #0x2c]
+  0x080162c8  str      r5, [r4, #0x2c]
+  0x080162cc  str      r3, [r6, #0x2c]
+  0x080167fe  str      r4, [sp, #0x2c]
+  0x08017dca  str      r2, [sp, #0x2c]
+  0x08018104  str      r3, [r0, #0x2c]
+  0x080189ae  str      r4, [sp, #0x2c]
+  0x080189f6  str      r3, [sp, #0x2c]
+  0x0801bb34  strb.w   r3, [sp, #0x2c]
+
+## 7. stores on the tick object itself (ctor / 0x080120ac / arp_seq_tick)
+
+pc-rel windows in §2 do not store to `0x20002bec` fields. Those stores
+are inside callees with r0 = the object.
+
+### tick_obj_ctor 0x08011d7c  (r0 = 0x20002bec)
+
+  0x08011d7c  push     {r4, r5, r6}
+  0x08011d80  str      r2, [r0]
+  0x08011d84  strb     r2, [r0, #4]
+  0x08011d86  strb     r2, [r0, #5]
+  0x08011d8a  strb     r5, [r0, #6]          ; #1
+  0x08011d8c  str      r2, [r0, #8]
+  0x08011d8e  strb     r2, [r0, #0xc]
+  0x08011d90  movw     r1, #0x2ee0
+  0x08011d94  strh     r1, [r0, #0xe]        ; 12000
+  0x08011d96  strb     r5, [r0, #0x10]       ; length = 1
+  0x08011d9a  strb     r1, [r0, #0x11]
+  0x08011d9c  strb     r2, [r0, #0x12]
+  0x08011d9e  strb     r1, [r0, #0x13]
+  0x08011da0  strb     r2, [r0, #0x14]
+  0x08011da2  str      r2, [r0, #0x18]
+  0x08011da8  str      r4, [r0, #0x1c]
+  0x08011daa  str      r4, [r0, #0x20]
+  0x08011dae  strh     r6, [r0, #0x24]
+  0x08011db0  strb.w   r2, [r0, #0x26]
+  0x08011db4  strb.w   r5, [r0, #0x27]
+  0x08011db8  strb.w   r2, [r0, #0x28]
+  0x08011dbe  strh     r5, [r0, #0x2a]
+  0x08011dc0  str      r2, [r0, #0x2c]
+  0x08011dc2  str      r2, [r0, #0x30]
+  0x08011dc4  strb.w   r2, [r0, #0x34]
+  0x08011dc8  str      r2, [r0, #0x38]
+  0x08011dca  str      r2, [r0, #0x3c]
+  0x08011dcc  str      r4, [r0, #0x40]
+  0x08011dd2  str      r4, [r0, #0x44]
+  0x08011dd6  strb.w   r4, [r0, #0x48]
+  0x08011dda  strb.w   r4, [r0, #0x49]
+  0x08011dde  strb.w   r2, [r0, #0x54]
+
+Offsets besides +0x38/+0x10/+0x55 written here: +0 +4 +5 +6 +8 +0xc
++0xe +0x11 +0x12 +0x13 +0x14 +0x18 +0x1c +0x20 +0x24 +0x26 +0x27
++0x28 +0x2a +0x2c +0x30 +0x34 +0x3c +0x40 +0x44 +0x48 +0x49 +0x54.
+
+### 0x080120ac  (loop site 0x08015314 passes r0=0x20002bec)
+
+  0x080120ac  push     {r4, lr}
+  0x080120ae  mov      r4, r0
+  0x080120b0  str      r1, [r0, #0x4c]
+  0x080120b2  str      r2, [r0, #0x50]
+  0x080120b4  strh     r3, [r0, #0xe]
+  0x080120ba  strb.w   r2, [r0, #0x48]
+  0x080120c0  bl       #0x8012048
+
+### 0x08012048  (feeds TIM2 ARR)
+
+  0x08012048  push     {r3, lr}
+  0x0801204a  movw     r3, #0x5dc0           ; 24000
+  0x0801204e  cmp      r1, r3
+  0x08012050  bhi      #0x8012060
+  0x08012052  movw     r3, #0xbb7
+  0x08012056  cmp      r1, r3
+  0x08012058  bhi      #0x8012064
+  0x0801205a  movw     r1, #0xbb8            ; 3000
+  0x0801205e  b        #0x8012064
+  0x08012060  movw     r1, #0x5dc0
+  0x08012064  strh     r1, [r0, #0xe]
+  then math → 0x0801207e load 0x20005534 → 0x08012084 str [r0,#0x2c] ARR
+
+No other ARR store in a 0x20005534 window. Internal tempo halfword is
+tick +0xe (ctor 0x2ee0). Swing occupancy values in §3 are mostly
+`strb [rx,#0x34]` offsets, not those immediates as data.
+
+### arp_seq_tick 0x080129cc–0x08013040 stores to [r4,#imm] (r4 = incoming r0)
+
++0x10: 0x08012da6 0x08012e1e 0x08012e60
++0x38: 0x08012eb2
++0x55: 0x08012a88 0x08012c88 0x08012cfa 0x08012d08 0x08012f48
+also [r4] +0x12 +0x13 +0x11 +0x34 +0x3c +0x40 +0x44 +0x48 +0x54
++0x56 +0x57 +0x58 +0x5d +0x5e
+
+  0x08012da6  strb.w   sb, [r4, #0x10]
+  0x08012eb2  str.w    sb, [r4, #0x38]
+  0x08012a88  strb.w   r5, [r4, #0x55]

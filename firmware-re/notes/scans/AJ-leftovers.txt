@@ -1,0 +1,273 @@
+STATUS: done
+AGENT: cursor
+TICKET: AJ
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/H-shared.txt; scans/Y-record-rest.txt; scans/I-time.txt; firmware bin
+
+# AJ-leftovers — +0x50, store case 5, Time Div #8
+
+## 1. 0x200051cc+0x50
+
+Tracked-reg search: after each pc-rel load of 0x200051cc, dest-reg
+then `[that,#0x50]` in the next 20 insns: **0 hits**.
+Earlier §1 windows that mention `#0x50` are `ldr rN,[pc,#0x50]`
+(literal-pool offset), not the field. Ignore those.
+
+ldrb/strb `[r,#0x50]` elsewhere (object is r0/r2 of the caller):
+
+  0x080058d2  ldr      r2, [pc, #0xb0]  ; 0x20001e04
+  0x080058d4  strb.w   r1, [r2, #0x50]  ; scale-mask object, not 051cc
+
+  0x0800f2e4  strb.w   r3, [r0, #0x4d]
+  0x0800f2e8  strb.w   r3, [r0, #0x4e]
+  0x0800f2ec  strb.w   r3, [r0, #0x4f]
+  0x0800f2f0  strb.w   r3, [r0, #0x50]
+  0x0800f2f4  strb.w   r1, [r0, #0x45]
+  0x0800f2f8  movs     r3, #0x15
+  0x0800f2fa  strb.w   r3, [r0, #0x3c]
+
+  0x0800f30a  strb.w   r3, [r0, #0x4f]
+  0x0800f30e  strb.w   r3, [r0, #0x50]
+
+  0x0800f55a  strb.w   r1, [r0, #0x50]
+  0x0800f55e  ldrsb.w  r3, [r0, #0x44]
+
+param_field_dispatch r0 writes +0x50 next to Type/Notes/Vel (+0x4d/4e/4f).
+No reader of 0x200051cc+0x50 found.
+
+## 1b. leftover (old noisy pc,#0x50 windows — not the field)
+
+from load 0x08004804
+  0x08004804  ldr      r2, [pc, #0x7c]
+  0x08004806  adds     r1, r3, #1
+  0x08004808  str      r1, [r2, #0x34]
+  0x0800480a  add.w    r3, r2, r3, lsl #2
+  0x0800480e  str      r4, [r3, #4]
+  0x08004810  pop      {r3, r4, r5, pc}
+  0x08004812  ldrh.w   r2, [r4, #0x64]
+  0x08004816  cmp      r0, r2
+  0x08004818  bhi      #0x8004822
+  0x0800481a  movs     r3, #0
+  0x0800481c  strb.w   r3, [r4, #0x59]
+  0x08004820  b        #0x80047ec
+  0x08004822  subs     r0, r0, r2
+  0x08004824  rsb      r0, r0, r0, lsl #8
+  0x08004828  subs     r3, r3, r2
+  0x0800482a  sdiv     r0, r0, r3
+
+from load 0x08005fc8
+  0x08005fc8  ldr      r3, [pc, #0x50]
+  0x08005fca  add      r3, r2
+  0x08005fcc  ldrb.w   r2, [r3, #0x3c]
+  0x08005fd0  ldr      r3, [pc, #0x44]
+  0x08005fd2  strh     r2, [r3, #4]
+  0x08005fd4  b        #0x8005f82
+  0x08005fd6  ldr      r4, [pc, #0x40]
+  0x08005fd8  movs     r3, #0xc
+  0x08005fda  strb     r3, [r4]
+  0x08005fdc  mov      r1, r4
+  0x08005fde  ldr      r3, [pc, #0x40]
+  0x08005fe0  ldr      r0, [r3]
+  0x08005fe2  bl       #0x8014684
+  0x08005fe6  mov      r1, r4
+  0x08005fe8  ldr      r0, [r5, #8]
+  0x08005fea  bl       #0x8011348
+
+from load 0x0800697e
+  0x0800697e  ldr      r3, [pc, #0x74]
+  0x08006980  ldrb.w   r3, [r3, #0x5b]
+  0x08006984  strb     r3, [r0, #6]
+  0x08006986  bx       lr
+  0x08006988  ldr      r3, [pc, #0x68]
+  0x0800698a  ldrb.w   r3, [r3, #0x54]
+  0x0800698e  strb     r3, [r0, #4]
+  0x08006990  cbz      r3, #0x80069a0
+  0x08006992  cmp      r3, #1
+  0x08006994  bne      #0x800696a
+  0x08006996  ldr      r3, [pc, #0x5c]
+  0x08006998  ldrb.w   r3, [r3, #0x57]
+  0x0800699c  strb     r3, [r0, #5]
+  0x0800699e  bx       lr
+  0x080069a0  ldr      r3, [pc, #0x50]
+  0x080069a2  ldrb.w   r3, [r3, #0x56]
+
+from load 0x08006988
+  0x08006988  ldr      r3, [pc, #0x68]
+  0x0800698a  ldrb.w   r3, [r3, #0x54]
+  0x0800698e  strb     r3, [r0, #4]
+  0x08006990  cbz      r3, #0x80069a0
+  0x08006992  cmp      r3, #1
+  0x08006994  bne      #0x800696a
+  0x08006996  ldr      r3, [pc, #0x5c]
+  0x08006998  ldrb.w   r3, [r3, #0x57]
+  0x0800699c  strb     r3, [r0, #5]
+  0x0800699e  bx       lr
+  0x080069a0  ldr      r3, [pc, #0x50]
+  0x080069a2  ldrb.w   r3, [r3, #0x56]
+  0x080069a6  strb     r3, [r0, #5]
+  0x080069a8  bx       lr
+  0x080069aa  ldrb     r2, [r0, #4]
+  0x080069ac  cmp      r2, #0
+
+from load 0x08006996
+  0x08006996  ldr      r3, [pc, #0x5c]
+  0x08006998  ldrb.w   r3, [r3, #0x57]
+  0x0800699c  strb     r3, [r0, #5]
+  0x0800699e  bx       lr
+  0x080069a0  ldr      r3, [pc, #0x50]
+  0x080069a2  ldrb.w   r3, [r3, #0x56]
+  0x080069a6  strb     r3, [r0, #5]
+  0x080069a8  bx       lr
+  0x080069aa  ldrb     r2, [r0, #4]
+  0x080069ac  cmp      r2, #0
+  0x080069ae  bne      #0x8006976
+  0x080069b0  ldr      r3, [pc, #0x40]
+  0x080069b2  ldrb.w   r3, [r3, #0x56]
+  0x080069b6  strb     r3, [r0, #5]
+  0x080069b8  bx       lr
+  0x080069ba  ldrb     r2, [r0, #4]
+
+from load 0x080069a0
+  0x080069a0  ldr      r3, [pc, #0x50]
+  0x080069a2  ldrb.w   r3, [r3, #0x56]
+  0x080069a6  strb     r3, [r0, #5]
+  0x080069a8  bx       lr
+  0x080069aa  ldrb     r2, [r0, #4]
+  0x080069ac  cmp      r2, #0
+  0x080069ae  bne      #0x8006976
+  0x080069b0  ldr      r3, [pc, #0x40]
+  0x080069b2  ldrb.w   r3, [r3, #0x56]
+  0x080069b6  strb     r3, [r0, #5]
+  0x080069b8  bx       lr
+  0x080069ba  ldrb     r2, [r0, #4]
+  0x080069bc  cmp      r2, #1
+  0x080069be  bne      #0x800697a
+  0x080069c0  ldr      r3, [pc, #0x30]
+  0x080069c2  ldrb.w   r3, [r3, #0x57]
+
+from load 0x08011e8e
+  0x08011e8e  ldr      r3, [pc, #0x50]
+  0x08011e90  ldrb.w   r3, [r3, #0x44]
+  0x08011e94  cbz      r3, #0x8011ed4
+  0x08011e96  push     {r4, r5, r6, lr}
+  0x08011e98  mov      r4, r0
+  0x08011e9a  bl       #0x8011e44
+  0x08011e9e  mov      r5, r0
+  0x08011ea0  ldrb.w   r1, [r4, #0x48]
+  0x08011ea4  mov      r0, r4
+  0x08011ea6  bl       #0x8011e0c
+  0x08011eaa  ubfx     r0, r0, #1, #0x10
+  0x08011eae  add      r5, r0
+  0x08011eb0  uxth     r5, r5
+  0x08011eb2  ldr      r0, [r4, #0x4c]
+  0x08011eb4  bl       #0x8013110
+  0x08011eb8  mov      r6, r0
+
+from load 0x080124ea
+  0x080124ea  ldr      r3, [pc, #0x164]
+  0x080124ec  ldrb.w   r3, [r3, #0x44]
+  0x080124f0  cmp      r3, #0
+  0x080124f2  bne      #0x8012414
+  0x080124f4  ldr      r3, [pc, #0x13c]
+  0x080124f6  ldr      r0, [r3]
+  0x080124f8  bl       #0x8019244
+  0x080124fc  cmp      r0, #1
+  0x080124fe  bne      #0x8012414
+  0x08012500  ldr      r0, [r4, #0x4c]
+  0x08012502  bl       #0x8013110
+  0x08012506  strb     r0, [r4, #0x10]
+  0x08012508  b        #0x8012414
+  0x0801250a  ldr      r0, [r4, #0x50]
+  0x0801250c  bl       #0x8014258
+  0x08012510  ldr      r0, [pc, #0x128]
+
+from load 0x0801c2f4
+  0x0801c2f4  ldr      r3, [pc, #0x74]
+  0x0801c2f6  ldrsb.w  r2, [r3, #0x4f]
+  0x0801c2fa  ldr      r3, [pc, #0x74]
+  0x0801c2fc  ldrsb.w  r1, [r3]
+  0x0801c300  bl       #0x801c3ca
+  0x0801c304  ldr      r3, [pc, #0x5c]
+  0x0801c306  ldrb     r3, [r3]
+  0x0801c308  and      r3, r3, #0xf
+  0x0801c30c  orr      r3, r3, #0x80
+  0x0801c310  strb.w   r3, [sp, #0x28]
+  0x0801c314  strb.w   r0, [sp, #0x29]
+  0x0801c318  movs     r3, #0x40
+  0x0801c31a  strb.w   r3, [sp, #0x2a]
+  0x0801c31e  movs     r6, #0
+  0x0801c320  strb.w   r6, [sp, #0x2b]
+  0x0801c324  ldr      r7, [pc, #0x50]
+
+windows with #0x50 after a 0x200051cc load: 9
+
+## 2. case 5 0x08014494 + callers of seq_step_store
+
+  0x08014494  ldrb     r3, [r1, #0xb]
+  0x08014496  subs     r3, #1
+  0x08014498  ldrb     r2, [r1, #0xd]
+  0x0801449a  add.w    r3, r0, r3, lsl #4
+  0x0801449e  ldrb     r4, [r3, #1]
+  0x080144a0  add      r2, r4
+  0x080144a2  strb     r2, [r3, #1]
+  0x080144a4  movs     r2, #1
+  0x080144a6  cmp      r2, #7
+  0x080144a8  bhi      #0x801444a
+  0x080144aa  ldrb     r3, [r1, #0xb]
+  0x080144ac  subs     r3, #1
+  0x080144ae  adds     r4, r1, r2
+  0x080144b0  ldrb     r4, [r4, #0xd]
+  0x080144b2  add.w    r3, r2, r3, lsl #3
+  0x080144b6  add.w    r3, r0, r3, lsl #1
+  0x080144ba  strb     r4, [r3, #1]
+  0x080144bc  adds     r2, #1
+  0x080144be  uxtb     r2, r2
+  0x080144c0  b        #0x80144a6
+
+### bl seq_step_store 0x080065e4
+  0x080065d8  bl       #0x8010c98
+  0x080065dc  b        #0x80065a4
+  0x080065de  mov      r1, r6
+  0x080065e0  ldr      r3, [pc, #0x2c]  ; 0x200010b8
+  0x080065e2  ldr      r0, [r3]
+  0x080065e4  bl       #0x8014418
+  0x080065e8  mov      r0, r5
+  0x080065ea  bl       #0x8005e5c
+  0x080065ee  b        #0x80065a4
+  0x080065f0  ldr      r3, [pc, #0x20]  ; 0x20001154
+  0x080065f2  ldr      r0, [r3]
+  0x080065f4  bl       #0x800e310
+  0x080065f8  b        #0x80065a4
+  0x080065fa  nop      
+
+## 3. Time Div #8 at 0x08005ae8 / 0x08005af0 (I rewrite, for remodel)
+
+  0x08005ab8  push     {r3, r4, r5, lr}
+  0x08005aba  mov      r4, r0
+  0x08005abc  bl       #0x8005cae
+  0x08005ac0  ldrb.w   r5, [r4, #0x6d]
+  0x08005ac4  mov      r0, r4
+  0x08005ac6  bl       #0x8005ccc
+  0x08005aca  cmp      r5, r0
+  0x08005acc  beq      #0x8005ad4
+  0x08005ace  ldr      r3, [pc, #0x3c]  ; 0x200010d2
+  0x08005ad0  ldrb     r3, [r3]
+  0x08005ad2  cbz      r3, #0x8005ad6
+  0x08005ad4  pop      {r3, r4, r5, pc}
+  0x08005ad6  mov      r0, r4
+  0x08005ad8  bl       #0x8005ccc
+  0x08005adc  strb.w   r0, [r4, #0x6d]
+  0x08005ae0  ldr      r3, [pc, #0x2c]  ; 0x200051cc
+  0x08005ae2  ldrb.w   r3, [r3, #0xb9]
+  0x08005ae6  cbz      r3, #0x8005aec
+  0x08005ae8  cmp      r0, #8
+  0x08005aea  bne      #0x8005afe
+  0x08005aec  ldrb.w   r1, [r4, #0x6d]
+  0x08005af0  cmp      r1, #8
+  0x08005af2  beq      #0x8005ad4
+  0x08005af4  ldr      r3, [pc, #0x1c]  ; 0x20001098
+  0x08005af6  ldr      r0, [r3]
+  0x08005af8  bl       #0x8011ee8
+  0x08005afc  b        #0x8005ad4
+  0x08005afe  adds     r1, r0, #1
+

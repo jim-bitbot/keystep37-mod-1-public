@@ -1,0 +1,67 @@
+STATUS: done
+AGENT: cursor
+TICKET: AP
+UPDATED: 2026-09-23T22:00+01:00
+INPUT: scans/W-led-confirm.txt; scans/F-buttons.txt; firmware bin
+
+# AP-rec-led — Rec press notify vs led_write / led_refresh
+
+## 1. unshifted Rec 0x0801780c
+
+  0x0801780c  ldr      r3, [pc, #0x27c]  ; 0x200010b6
+  0x0801780e  movs     r2, #1
+  0x08017810  strb     r2, [r3]
+  0x08017812  ldr      r3, [pc, #0x27c]  ; 0x20001124
+  0x08017814  ldr      r3, [r3]
+  0x08017816  ldrb     r3, [r3, #0xf]
+  0x08017818  cmp      r3, r2
+  0x0801781a  bne.w    #0x8017b0e
+  0x0801781e  ldr      r4, [pc, #0x274]  ; 0x20001120
+  0x08017820  movs     r1, #5
+  0x08017822  ldr      r0, [r4]
+  0x08017824  bl       #0x801d7b6
+  0x08017828  movs     r2, #0
+  0x0801782a  movs     r1, #5
+  0x0801782c  ldr      r0, [r4]
+  0x0801782e  bl       #0x801d76c
+  0x08017832  b        #0x8017b0e
+  0x08017834  ldr      r3, [pc, #0x24c]  ; 0x20001094
+  0x08017836  ldr      r3, [r3]
+  0x08017838  ldr      r2, [pc, #0x25c]  ; 0x2000111c
+
+## 2. bl from that window
+
+  0x08017824  bl 0x0801d7b6
+  0x0801d7b6  adds     r2, r0, r1
+  0x0801d7b8  movs     r3, #0
+  0x0801d7ba  strb     r3, [r2, #4]
+  0x0801d7bc  strb     r3, [r2, #0xc]
+  0x0801d7be  adds     r1, #8
+  0x0801d7c0  add.w    r0, r0, r1, lsl #1
+  0x0801d7c4  strh     r3, [r0, #4]
+  0x0801d7c6  bx       lr
+  0x0801d7c8  push     {r3, r4, r5, r6, r7, lr}
+  0x0801d7ca  mov      r5, r0
+  0x0801d7cc  ldr      r3, [pc, #0x80]  ; 0x200010c0
+  0x0801d7ce  ldrh     r6, [r3]
+
+  0x0801782e  bl 0x0801d76c
+  0x0801d76c  push     {r4, r5, r6, lr}
+  0x0801d76e  mov      r4, r0
+  0x0801d770  mov      r5, r1
+  0x0801d772  mov      r6, r2
+  0x0801d774  clz      r2, r2
+  0x0801d778  lsrs     r2, r2, #5
+  0x0801d77a  ldr      r3, [pc, #0x10]  ; 0x0801ef50
+  0x0801d77c  ldrb     r1, [r3, r1]
+  0x0801d77e  ldr      r0, [r0]
+  0x0801d780  bl       #0x801d364
+  0x0801d784  add      r4, r5
+  0x0801d786  strb.w   r6, [r4, #0x24]
+
+## 3. led_write 0x0800d26e callers (count only + any in 0x08017800–0x08017900)
+
+led_write bl count 33
+led_refresh bl count 1
+in Rec window: none
+

@@ -1,0 +1,211 @@
+STATUS: done
+AGENT: cursor
+TICKET: AF
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/U-set-protocol.txt; scans/X-selectors.txt; firmware bin
+
+# AF-set-alt — SET without TBB; param_field_dispatch write path
+
+## 1. param_field_dispatch 0x0800f054 + callers
+
+  0x0800f054  push     {r4, r5, r6, lr}
+  0x0800f056  sub      sp, #0x10
+  0x0800f058  mov      r4, r0
+  0x0800f05a  ldrb.w   r3, [r0, #0x3c]
+  0x0800f05e  subs     r3, #1
+  0x0800f060  cmp      r3, #0x29
+  0x0800f062  bhi.w    #0x800f270
+  0x0800f066  tbh      [pc, r3, lsl #1]  ; 0x69002af0
+  0x0800f06a  movs     r2, r5
+  0x0800f06c  lsls     r1, r5, #1
+  0x0800f06e  lsls     r5, r0, #2
+  0x0800f070  lsls     r1, r4, #2
+  0x0800f072  lsls     r1, r0, #3
+  0x0800f074  lsls     r5, r3, #3
+  0x0800f076  lsls     r5, r0, #4
+  0x0800f078  lsls     r0, r6, #4
+  0x0800f07a  lsls     r3, r1, #5
+  0x0800f07c  lsls     r4, r3, #7
+  0x0800f07e  lsls     r1, r4, #8
+  0x0800f080  lsls     r7, r4, #8
+  0x0800f082  lsls     r4, r5, #9
+  0x0800f084  lsls     r2, r6, #9
+  0x0800f086  lsls     r0, r7, #9
+  0x0800f088  lsls     r5, r7, #0xa
+
+### caller 0x0800fd4e
+  0x0800fd3e  b        #0x800fd26
+  0x0800fd40  movs     r3, #2
+  0x0800fd42  strb.w   r3, [r5, #0xe0]
+  0x0800fd46  b        #0x800faac
+  0x0800fd48  mov      r1, r6
+  0x0800fd4a  add.w    r0, r5, #0x28
+  0x0800fd4e  bl       #0x800f054
+  0x0800fd52  b        #0x800faac
+  0x0800fd54  add      sp, #8
+  0x0800fd56  pop.w    {r4, r5, r6, r7, r8, sb, sl, pc}
+  0x0800fd5a  nop      
+  0x0800fd5c  push.w   {r4, r5, r6, r7, r8, lr}
+  0x0800fd60  sub      sp, #8
+  0x0800fd62  mov      r5, r1
+  0x0800fd64  add.w    r4, r0, #0x248
+  0x0800fd68  sxtb     r2, r1
+
+### caller 0x0800ffda
+  0x0800ffca  b        #0x800ffb2
+  0x0800ffcc  movs     r3, #2
+  0x0800ffce  strb.w   r3, [r4, #0xe0]
+  0x0800ffd2  b        #0x800fdb6
+  0x0800ffd4  mov      r1, r5
+  0x0800ffd6  add.w    r0, r4, #0x28
+  0x0800ffda  bl       #0x800f054
+  0x0800ffde  b        #0x800fdb6
+  0x0800ffe0  push.w   {r4, r5, r6, r7, r8, lr}
+  0x0800ffe4  sub      sp, #8
+  0x0800ffe6  mov      r4, r0
+  0x0800ffe8  mov      r6, r1
+  0x0800ffea  mov      r5, r2
+  0x0800ffec  mov      r7, r3
+  0x0800ffee  ldrb     r3, [r0]
+  0x0800fff0  cmp      r3, #0xef
+
+## 2. get_param family entries (write-shaped stores in first 32)
+
+### get_param 0x08005e84
+  0x08005e84  push     {r3, r4, r5, r6, r7, lr}
+  0x08005e86  mov      r5, r0
+  0x08005e88  mov      r6, r1
+  0x08005e8a  ldr      r3, [pc, #0x184]  ; 0x20000214
+  0x08005e8c  ldr      r3, [r3]
+  0x08005e8e  cbz      r3, #0x8005eae
+  0x08005e90  ldr      r3, [pc, #0x17c]  ; 0x20000214
+  0x08005e92  ldr      r3, [r3]
+  0x08005e94  str      r3, [r5, #4]
+  0x08005e96  cmp      r3, #0
+  0x08005e98  beq      #0x8005f42
+  0x08005e9a  ldr      r3, [pc, #0x178]  ; 0x2000028c
+  0x08005e9c  ldr      r3, [r3]
+  0x08005e9e  cbz      r3, #0x8005ec0
+  0x08005ea0  ldr      r3, [pc, #0x170]  ; 0x2000028c
+  0x08005ea2  ldr      r3, [r3]
+  0x08005ea4  str      r3, [r5, #8]
+  0x08005ea6  cmp      r3, #0
+  0x08005ea8  beq      #0x8005f44
+  0x08005eaa  movs     r3, #1
+
+stores in first 32: 4
+  0x08005e94  str      r3, [r5, #4]
+  0x08005ea4  str      r3, [r5, #8]
+  0x08005ebc  str      r4, [r3]
+  0x08005eca  strb     r3, [r0]
+
+### get_param_b 0x0800614c
+  0x0800614c  push     {r4, r5, r6, r7, lr}
+  0x0800614e  sub      sp, #0x4c
+  0x08006150  mov      r5, r0
+  0x08006152  mov      r6, r1
+  0x08006154  ldr      r3, [pc, #0x284]  ; 0x20000214
+  0x08006156  ldr      r3, [r3]
+  0x08006158  cbz      r3, #0x8006178
+  0x0800615a  ldr      r3, [pc, #0x280]  ; 0x20000214
+  0x0800615c  ldr      r3, [r3]
+  0x0800615e  str      r3, [r5, #4]
+  0x08006160  cmp      r3, #0
+  0x08006162  beq      #0x800620c
+  0x08006164  ldr      r3, [pc, #0x278]  ; 0x2000028c
+  0x08006166  ldr      r3, [r3]
+  0x08006168  cbz      r3, #0x800618a
+  0x0800616a  ldr      r3, [pc, #0x274]  ; 0x2000028c
+  0x0800616c  ldr      r3, [r3]
+  0x0800616e  str      r3, [r5, #8]
+  0x08006170  cmp      r3, #0
+  0x08006172  beq      #0x800620e
+
+stores in first 32: 3
+  0x0800615e  str      r3, [r5, #4]
+  0x0800616e  str      r3, [r5, #8]
+  0x08006186  str      r4, [r3]
+
+### get_param_c 0x080060c4
+  0x080060c4  push     {r3, lr}
+  0x080060c6  ldrsb.w  r3, [r1]
+  0x080060ca  cmp      r3, #8
+  0x080060cc  bne      #0x80060d4
+  0x080060ce  ldrb     r3, [r1, #2]
+  0x080060d0  cmp      r3, #0x40
+  0x080060d2  beq      #0x80060d6
+  0x080060d4  pop      {r3, pc}
+  0x080060d6  ldrb     r3, [r1, #9]
+  0x080060d8  and      r3, r3, #0x7f
+  0x080060dc  ldrb     r2, [r1, #1]
+  0x080060de  cmp      r2, #0x32
+  0x080060e0  beq      #0x80060f8
+  0x080060e2  cmp      r2, #0x33
+  0x080060e4  bne      #0x80060d4
+  0x080060e6  cmp      r3, #0x41
+  0x080060e8  beq      #0x8006136
+  0x080060ea  cmp      r3, #0x40
+  0x080060ec  bne      #0x80060d4
+  0x080060ee  ldr      r3, [pc, #0x50]  ; 0x20001164
+
+stores in first 32: 0
+
+### GET TBB 0x0800ee92
+  0x0800ee92  tbb      [pc, r3]
+  0x0800ee96  eors     r4, r0
+  0x0800ee98  muls     r3, r0, r3
+  0x0800ee9a  ldr      r0, [pc, #0x120]  ; 0xe7c9f9f3
+  0x0800ee9c  ldr      r0, [pc, #0x120]  ; 0x7021f44f
+  0x0800ee9e  ldr      r0, [pc, #0x110]  ; 0x28006818
+  0x0800eea0  eors     r4, r0
+  0x0800eea2  muls     r3, r0, r3
+  0x0800eea4  muls     r0, r1, r0
+  0x0800eea6  muls     r3, r0, r3
+  0x0800eea8  muls     r3, r0, r3
+  0x0800eeaa  muls     r3, r0, r3
+  0x0800eeac  muls     r3, r0, r3
+  0x0800eeae  muls     r3, r0, r3
+  0x0800eeb0  muls     r3, r0, r3
+  0x0800eeb2  muls     r3, r0, r3
+  0x0800eeb4  add      r3, r8
+  0x0800eeb6  add      r0, r8
+  0x0800eeb8  add      r0, r8
+  0x0800eeba  eors     r0, r0
+
+stores in first 32: 0
+
+### sibling 0x0800ef38
+  0x0800ef38  cmp      r2, #0
+  0x0800ef3a  bne.w    #0x800f044
+  0x0800ef3e  push     {r4, r5, r6, r7, lr}
+  0x0800ef40  sub      sp, #0x14
+  0x0800ef42  mov      r6, r2
+  0x0800ef44  ldrb     r3, [r1]
+  0x0800ef46  cmp      r3, #6
+  0x0800ef48  bne      #0x800ef50
+  0x0800ef4a  ldrb     r3, [r1, #1]
+  0x0800ef4c  cmp      r3, #1
+  0x0800ef4e  beq      #0x800ef58
+  0x0800ef50  bl       #0x80067a8
+  0x0800ef54  add      sp, #0x14
+  0x0800ef56  pop      {r4, r5, r6, r7, pc}
+  0x0800ef58  movs     r2, #6
+  0x0800ef5a  strb.w   r2, [sp]
+  0x0800ef5e  movs     r1, #2
+  0x0800ef60  strb.w   r1, [sp, #1]
+  0x0800ef64  movs     r3, #0
+  0x0800ef66  strb.w   r3, [sp, #2]
+
+stores in first 32: 11
+  0x0800ef5a  strb.w   r2, [sp]
+  0x0800ef60  strb.w   r1, [sp, #1]
+  0x0800ef66  strb.w   r3, [sp, #2]
+  0x0800ef6a  strb.w   r3, [sp, #3]
+  0x0800ef6e  strb.w   r3, [sp, #4]
+  0x0800ef74  strb.w   r0, [sp, #5]
+  0x0800ef7a  strb.w   r0, [sp, #6]
+  0x0800ef80  strb.w   r0, [sp, #7]
+  0x0800ef84  strb.w   r1, [sp, #8]
+  0x0800ef88  strb.w   r3, [sp, #9]
+  0x0800ef8e  strb.w   r1, [sp, #0xa]
+

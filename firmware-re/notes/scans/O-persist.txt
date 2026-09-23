@@ -1,0 +1,81 @@
+STATUS: done
+AGENT: cursor
+TICKET: O
+UPDATED: 2026-09-23T20:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# O-persist — slot bases and the settings pointer
+# Length / swing / gate at flash slot +0x400: not re-derived.
+
+## 1. seq_slot_base 0x0800dd30
+
+cmp r1, #7; bhi -> 0x0800dd5e. TBB base 0x0800dd3a. Bytes 04 17 06 08 0a 0c 0e 10.
+
+  r1  target       flash
+  0   0x0800dd42   0x0803b000
+  1   0x0800dd68   0x0803b800
+  2   0x0800dd46   0x0803c000
+  3   0x0800dd4a   0x0803c800
+  4   0x0800dd4e   0x0803d000
+  5   0x0800dd52   0x0803d800
+  6   0x0800dd56   0x0803e000
+  7   0x0800dd5a   0x0803e800
+
+That is 0x0803b000 + r1*0x800. Each arm loads the word and pops it in r0.
+
+r1 > 7:
+
+  0x0800dd5e  0120        movs     r0, #1
+  0x0800dd60  08f098fa    bl       #0x08016294
+  0x0800dd64  0148        ldr      r0, [pc, #4]      ; 0x0803b000
+  0x0800dd66  00e0        b        #0x0800dd6a
+
+Static callers: 0x0800de16, 0x0800de96, 0x0800e21a.
+
+## 2. FLASH IRQ entry 0x080186d4
+
+  0x080186d4  08b5        push     {r3, lr}
+  0x080186d6  eff733fd    bl       #0x08008140
+  0x080186da  024b        ldr      r3, [pc, #8]      ; 0x20001154
+  0x080186dc  1868        ldr      r0, [r3]
+  0x080186de  f5f755fb    bl       #0x0800dd8c
+  0x080186e2  08bd        pop      {r3, pc}
+
+0x40022000 literals sit in 0x0800806e–0x080084d4, the region of the first callee. Not walked.
+
+0x0800dd8c, the second callee:
+
+  0x0800dd8c  90f80038    ldrb.w   r3, [r0, #0x800]
+  0x0800dd90  13b1        cbz      r3, #0x0800dd98
+  0x0800dd92  012b        cmp      r3, #1
+  0x0800dd98  0123        movs     r3, #1
+  0x0800dd9a  80f80038    strb.w   r3, [r0, #0x800]
+  0x0800dd9e  b0f80228    ldrh.w   r2, [r0, #0x802]
+  0x0800dda2  b0f80438    ldrh.w   r3, [r0, #0x804]
+  0x0800dda6  9a42        cmp      r2, r3
+
+## 3. Settings pointer 0x20001170
+
+One store. Value stored is 0x200004f4.
+
+  0x08015188  904b        ldr      r3, [pc, #0x240]  ; 0x20001170
+  0x0801518a  914a        ldr      r2, [pc, #0x244]  ; 0x200004f4
+  0x0801518c  1a60        str      r2, [r3]
+
+Two reads pass *0x20001170 to 0x08005ccc:
+
+  0x080169da  314b        ldr      r3, [pc, #0xc4]   ; 0x20001170
+  0x080169dc  1868        ldr      r0, [r3]
+  0x080169de  eff775f9    bl       #0x08005ccc
+  0x080169e2  0828        cmp      r0, #8
+
+  0x08016a1a  214b        ldr      r3, [pc, #0x84]   ; 0x20001170
+  0x08016a1c  1868        ldr      r0, [r3]
+  0x08016a1e  eff755f9    bl       #0x08005ccc
+  0x08016a22  0146        mov      r1, r0
+  0x08016a26  faf7b5fe    bl       #0x08011794
+
+## 4. Missing
+
+No load or store of offset 0x400 on the flash slot base in 0x0800dd30–0x0800e400.
+seq_step_store writes +0x400/+0x401/+0x402 on the RAM block from *0x200010fc (scans/L-record.txt). That is a different object.

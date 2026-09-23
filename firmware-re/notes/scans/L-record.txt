@@ -1,0 +1,83 @@
+STATUS: done
+AGENT: cursor
+TICKET: L
+UPDATED: 2026-09-23T20:20+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; scans/F-buttons.txt; scans/G-ctors.txt
+
+# L-record — store entry and the Rec flag
+# Rec LED write: not found.
+
+## 1. Entry
+
+0x08014416 is bx lr. Its only bl is the ctor sweep, with r0 = 0x200050c0.
+
+  0x08014ecc  5848        ldr      r0, [pc, #0x160]  ; 0x200050c0
+  0x08014ece  fff7a2fa    bl       #0x08014416
+  0x08014416  7047        bx       lr
+
+The store function starts at the next halfword. One static bl, from 0x080065e4.
+
+  0x08014418  30b4        push     {r4, r5}
+  0x0801441a  8b7a        ldrb     r3, [r1, #0xa]
+  0x0801441c  013b        subs     r3, #1
+  0x0801441e  424a        ldr      r2, [pc, #0x108]  ; 0x200010fc
+  0x08014420  52f82300    ldr.w    r0, [r2, r3, lsl #2]
+  0x08014424  90f80334    ldrb.w   r3, [r0, #0x403]
+  0x08014428  43f00203    orr      r3, r3, #2
+  0x0801442c  80f80334    strb.w   r3, [r0, #0x403]
+
+Caller:
+
+  0x080065de  3146        mov      r1, r6
+  0x080065e0  0b4b        ldr      r3, [pc, #0x2c]   ; 0x200010b8
+  0x080065e2  1868        ldr      r0, [r3]
+  0x080065e4  0df018ff    bl       #0x08014418
+
+## 2. TBB on ([r1,#1] − 0x60)
+
+cmp #6, so indexes 0..6. Base 0x0801443c. Bytes 04 0f 13 17 07 2c 43.
+
+  0  0x08014444  ldrb [r1,#0xd]; strb [r0,#0x400]
+  1  0x0801445a  ldrb [r1,#0xd]; strb [r0,#0x401]
+  2  0x08014462  ldrb [r1,#0xd]; strb [r0,#0x402]
+  3  0x0801446a  loop on [r1,#0xb]
+  4  0x0801444a  skip the cell store
+  5  0x08014494
+  6  0x080144c2
+
+Common tail after 0..2 and the index-4 target:
+
+  0x0801444a  384b        ldr      r3, [pc, #0xe0]   ; 0x200010d5
+  0x0801444c  0122        movs     r2, #1
+  0x0801444e  1a70        strb     r2, [r3]
+  0x08014450  374b        ldr      r3, [pc, #0xdc]   ; 0x200010a9
+  0x08014452  0a22        movs     r2, #0xa
+  0x08014454  1a70        strb     r2, [r3]
+  0x08014458  7047        bx       lr
+
+## 3. Rec compact 5, from F
+
+Unshifted r1=5 at 0x0801780c stores 1 to 0x200010b6, then if *0x20001124+0xf == 1 calls 0x0801d7b6 and 0x0801d76c with r1=5.
+
+  0x0801780c  9f4b        ldr      r3, [pc, #0x27c]  ; 0x200010b6
+  0x0801780e  0122        movs     r2, #1
+  0x08017810  1a70        strb     r2, [r3]
+  0x08017820  0521        movs     r1, #5
+  0x08017824  05f0c7ff    bl       #0x0801d7b6
+  0x0801782a  0521        movs     r1, #5
+  0x0801782e  05f09dff    bl       #0x0801d76c
+
+r2==0 r1=5 at 0x08017b1a stores 0 to the same byte.
+
+  0x08017b1a  934b        ldr      r3, [pc, #0x24c]  ; 0x200010b6
+  0x08017b1c  0022        movs     r2, #0
+  0x08017b1e  1a70        strb     r2, [r3]
+
+Shifted r1=5 starts at 0x080178c8. It reads +0xf and 0x200051cc+0x49. No store to 0x200010b6 in the first 12 insns. No bl to 0x08014418.
+
+Other loads of 0x200010b6: 0x0800cd6a (key_scan, bne skips ahead), 0x08013f1c (play_time_step, bne to 0x08013ea0).
+
+## 4. Missing
+
+Rec LED store: not found in these windows.
+Hold-length-clear (Shift + both Oct): not in this scan.

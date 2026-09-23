@@ -1,0 +1,77 @@
+STATUS: done
+AGENT: cursor
+TICKET: V
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/O-persist.txt; firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin
+
+# V-persist-commit — application-level RAM to flash
+# 0x08008140 and deeper ST HAL not walked.
+
+## 1. FLASH IRQ 0x080186d4 callers
+  static bl/b: 0  []
+  Vector only (C): [20] 0x08004050 = 0x080186d5
+
+## 2. seq_slot_base callers
+### 0x0800de16
+  0x0800de0e  0000        movs     r0, r0
+  0x0800de10  38b5        push     {r3, r4, r5, lr}
+  0x0800de12  0446        mov      r4, r0
+  0x0800de14  0d46        mov      r5, r1
+  0x0800de16  fff78bff    bl       #0x800dd30
+  0x0800de1a  0246        mov      r2, r0
+  0x0800de1c  034b        ldr      r3, [pc, #0xc]  ; 0x200010fc
+  0x0800de1e  53f82510    ldr.w    r1, [r3, r5, lsl #2]
+  0x0800de22  2046        mov      r0, r4
+  0x0800de24  fff7e7ff    bl       #0x800ddf6
+  0x0800de28  38bd        pop      {r3, r4, r5, pc}
+  0x0800de2a  00bf        nop      
+  0x0800de2c  fc10        asrs     r4, r7, #3
+  0x0800de2e  0020        movs     r0, #0
+  0x0800de30  0023        movs     r3, #0
+  0x0800de32  01e0        b        #0x800de38
+
+### 0x0800de96
+  0x0800de8e  7047        bx       lr
+  0x0800de90  38b5        push     {r3, r4, r5, lr}
+  0x0800de92  0446        mov      r4, r0
+  0x0800de94  0d46        mov      r5, r1
+  0x0800de96  fff74bff    bl       #0x800dd30
+  0x0800de9a  c4f80808    str.w    r0, [r4, #0x808]
+  0x0800de9e  0023        movs     r3, #0
+  0x0800dea0  a4f80238    strh.w   r3, [r4, #0x802]
+  0x0800dea4  40f20323    movw     r3, #0x203
+  0x0800dea8  a4f80438    strh.w   r3, [r4, #0x804]
+  0x0800deac  064b        ldr      r3, [pc, #0x18]  ; 0x200010fc
+  0x0800deae  53f82520    ldr.w    r2, [r3, r5, lsl #2]
+  0x0800deb2  2146        mov      r1, r4
+  0x0800deb4  2046        mov      r0, r4
+  0x0800deb6  fff79eff    bl       #0x800ddf6
+  0x0800deba  faf7e9f9    bl       #0x8008290
+
+### 0x0800e21a
+  0x0800e212  bdf80610    ldrh.w   r1, [sp, #6]
+  0x0800e216  c9b2        uxtb     r1, r1
+  0x0800e218  2046        mov      r0, r4
+  0x0800e21a  fff789fd    bl       #0x800dd30
+  0x0800e21e  bdf80410    ldrh.w   r1, [sp, #4]
+  0x0800e222  00eb0110    add.w    r0, r0, r1, lsl #4
+  0x0800e226  bdf80210    ldrh.w   r1, [sp, #2]
+  0x0800e22a  bdf80020    ldrh.w   r2, [sp]
+  0x0800e22e  92b2        uxth     r2, r2
+  0x0800e230  0023        movs     r3, #0
+  0x0800e232  0144        add      r1, r0
+  0x0800e234  0120        movs     r0, #1
+  0x0800e236  faf77ff8    bl       #0x8008338
+  0x0800e23a  bdf80230    ldrh.w   r3, [sp, #2]
+  0x0800e23e  0233        adds     r3, #2
+  0x0800e240  9bb2        uxth     r3, r3
+
+## 3. Containing starts
+0x0800de16 is inside the push at 0x0800de10.
+0x0800de96 is inside the push at 0x0800de90 (previous insn 0x0800de8e is bx lr).
+0x0800e21a is mid-function (previous dump is not a start).
+
+0x0800de16: after seq_slot_base, loads *0x200010fc[r5] and bl 0x0800ddf6.
+0x0800de96: stores the slot base at [r4,#0x808], zeros +0x802, writes 0x203 to +0x804, then bl 0x0800ddf6 and 0x08008290.
+0x0800e21a: uses the returned base as r0 + (halfword<<4), then bl 0x08008338.
+

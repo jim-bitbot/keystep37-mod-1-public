@@ -1,0 +1,71 @@
+STATUS: done
+AGENT: cursor
+TICKET: W
+UPDATED: 2026-09-23T21:45+01:00
+INPUT: scans/P-led.txt; scans/L-record.txt
+
+# W-led-confirm — DMA1_CH1 tail and Rec LED
+
+## 1. 0x080045b6 and 0x08004566
+  0x080045b6  08b5        push     {r3, lr}
+  0x080045b8  0023        movs     r3, #0
+  0x080045ba  80f84030    strb.w   r3, [r0, #0x40]
+  0x080045be  806b        ldr      r0, [r0, #0x38]
+  0x080045c0  fff7d1ff    bl       #0x8004566
+  0x080045c4  08bd        pop      {r3, pc}
+  0x080045c6  70b5        push     {r4, r5, r6, lr}
+  0x080045c8  90f82440    ldrb.w   r4, [r0, #0x24]
+  0x080045cc  012c        cmp      r4, #1
+  0x080045ce  29d0        beq      #0x8004624
+  0x080045d0  1346        mov      r3, r2
+  0x080045d2  0a46        mov      r2, r1
+  0x080045d4  0446        mov      r4, r0
+  0x080045d6  806a        ldr      r0, [r0, #0x28]
+  0x080045d8  20f47060    bic      r0, r0, #0xf00
+  0x080045dc  20f00100    bic      r0, r0, #1
+
+  0x08004566  90f82430    ldrb.w   r3, [r0, #0x24]
+  0x0800456a  012b        cmp      r3, #1
+  0x0800456c  20d0        beq      #0x80045b0
+  0x0800456e  10b5        push     {r4, lr}
+  0x08004570  0446        mov      r4, r0
+  0x08004572  0123        movs     r3, #1
+  0x08004574  80f82430    strb.w   r3, [r0, #0x24]
+  0x08004578  0268        ldr      r2, [r0]
+  0x0800457a  9368        ldr      r3, [r2, #8]
+  0x0800457c  23f48073    bic      r3, r3, #0x100
+  0x08004580  9360        str      r3, [r2, #8]
+  0x08004582  006a        ldr      r0, [r0, #0x20]
+  0x08004584  03f04af9    bl       #0x800781c
+  0x08004588  0246        mov      r2, r0
+  0x0800458a  60b9        cbnz     r0, #0x80045a6
+  0x0800458c  a36a        ldr      r3, [r4, #0x28]
+  0x0800458e  23f48853    bic      r3, r3, #0x1100
+  0x08004592  23f00103    bic      r3, r3, #1
+  0x08004596  43f00103    orr      r3, r3, #1
+  0x0800459a  a362        str      r3, [r4, #0x28]
+
+  045b6 bls: ['0x080045c0->#0x8004566']
+  04566 bls: ['0x08004584->#0x800781c']
+  led_write 0x0800d26e / led_refresh 0x0800d1f8: not in those bls.
+
+## 2. Rec press 0x0801780c notify vs led_write callers
+  0x0801780c  9f4b        ldr      r3, [pc, #0x27c]  ; 0x200010b6
+  0x0801780e  0122        movs     r2, #1
+  0x08017810  1a70        strb     r2, [r3]
+  0x08017812  9f4b        ldr      r3, [pc, #0x27c]  ; 0x20001124
+  0x08017814  1b68        ldr      r3, [r3]
+  0x08017816  db7b        ldrb     r3, [r3, #0xf]
+  0x08017818  9342        cmp      r3, r2
+  0x0801781a  40f07881    bne.w    #0x8017b0e
+  0x0801781e  9d4c        ldr      r4, [pc, #0x274]  ; 0x20001120
+  0x08017820  0521        movs     r1, #5
+  0x08017822  2068        ldr      r0, [r4]
+  0x08017824  05f0c7ff    bl       #0x801d7b6
+  0x08017828  0022        movs     r2, #0
+  0x0801782a  0521        movs     r1, #5
+  0x0801782c  2068        ldr      r0, [r4]
+  0x0801782e  05f09dff    bl       #0x801d76c
+led_write callers: 33 (P said 33 in 0x0800d2f2-0x0800daac)
+  in button-dispatch window 0x08017700-0x08017c00: none
+  Rec press bls 0x0801d7b6 and 0x0801d76c, not led_write.

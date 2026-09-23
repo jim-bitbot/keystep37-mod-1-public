@@ -1,0 +1,119 @@
+STATUS: done
+AGENT: cursor
+TICKET: AR
+UPDATED: 2026-09-23T22:10+01:00
+INPUT: scans/AI-ctors-init.txt; firmware bin
+
+# AR-init-sweeps — targets of init_array wrappers 2/3/5
+# Same r0==1 && r1==0xffff gate as ctor_sweep. Not a second 0x08014d08.
+# USB / FLASH not walked.
+
+## 1. 0x08005da8  (from 0x08005e74)
+
+  0x08005da8  cmp      r0, #1
+  0x08005daa  beq      #0x8005dae
+  0x08005dac  bx       lr
+  0x08005dae  movw     r3, #0xffff
+  0x08005db2  cmp      r1, r3
+  0x08005db4  bne      #0x8005dac
+  0x08005db6  ldr      r2, [pc, #0x38]  ; 0x20000218
+  0x08005db8  movs     r3, #0
+  0x08005dba  strb     r3, [r2]
+  0x08005dbc  strb     r3, [r2, #1]
+  0x08005dbe  strb     r3, [r2, #2]
+  0x08005dc0  movw     r1, #0xffff
+  0x08005dc4  strh     r1, [r2, #4]
+  0x08005dc6  strb     r3, [r2, #6]
+  0x08005dc8  strb     r3, [r2, #7]
+  0x08005dca  strb     r3, [r2, #8]
+  0x08005dcc  cmp      r3, #3
+  0x08005dce  bgt      #0x8005ddc
+  0x08005dd0  ldr      r2, [pc, #0x1c]  ; 0x20000218
+  0x08005dd2  add      r2, r3
+  0x08005dd4  movs     r1, #0
+  0x08005dd6  strb     r1, [r2, #9]
+  0x08005dd8  adds     r3, #1
+  0x08005dda  b        #0x8005dcc
+  0x08005ddc  movs     r3, #0
+  0x08005dde  cmp      r3, #0x63
+  0x08005de0  bgt      #0x8005dac
+  0x08005de2  ldr      r2, [pc, #0xc]  ; 0x20000218
+  0x08005de4  add      r2, r3
+  0x08005de6  movs     r1, #0
+  0x08005de8  strb     r1, [r2, #0xd]
+  0x08005dea  adds     r3, #1
+  0x08005dec  b        #0x8005dde
+
+No bl. Object 0x20000218. Next push is 0x08005df8 (chord_test_dispatch).
+
+## 2. 0x08010f40  (from 0x08011528)
+
+  0x08010f40  cmp      r0, #1
+  0x08010f42  beq      #0x8010f46
+  0x08010f44  bx       lr
+  0x08010f46  movw     r3, #0xffff
+  0x08010f4a  cmp      r1, r3
+  0x08010f4c  bne      #0x8010f44
+  0x08010f4e  ldr      r3, [pc, #0xc]  ; 0x200002b0
+  0x08010f50  movs     r2, #0
+  0x08010f52  strb     r2, [r3]
+  0x08010f54  strb     r2, [r3, #1]
+  0x08010f56  strb     r2, [r3, #2]
+  0x08010f58  strb     r2, [r3, #3]
+  0x08010f5a  b        #0x8010f44
+
+No bl. Object 0x200002b0, four bytes zeroed. Next code at 0x08010f60
+is a different function (sub sp).
+
+## 3. 0x08015f74  (from 0x0801611a)
+
+  0x08015f74  push     {r4, lr}
+  0x08015f76  cmp      r0, #1
+  0x08015f78  beq      #0x8015f7c
+  0x08015f7a  pop      {r4, pc}
+  0x08015f7c  movw     r3, #0xffff
+  0x08015f80  cmp      r1, r3
+  0x08015f82  bne      #0x8015f7a
+  0x08015f84  ldr      r0, [pc, #0x14]  ; 0x200051cc
+  0x08015f86  movs     r3, #0
+  0x08015f88  str      r3, [r0, #0x34]
+  0x08015f8a  str      r3, [r0, #0x38]
+  0x08015f8c  ldr      r2, [pc, #0x10]  ; 0x0801ec54
+  0x08015f8e  str      r2, [r0]
+  0x08015f90  str.w    r3, [r0, #0xbc]
+  0x08015f94  bl       #0x8015d6c
+  0x08015f98  b        #0x8015f7a
+
+Object 0x200051cc. Stores word 0x0801ec54 at +0 (literal 0x08015d5d).
+Zeros +0x34, +0x38, +0xbc.
+
+### 0x08015d6c  (only bl; r0 still 0x200051cc)
+
+  0x08015d6c  push     {r4, r5, r6}
+  0x08015d6e  movs     r3, #0
+  0x08015d70  strb.w   r3, [r0, #0x3f]
+  0x08015d74  movs     r2, #0x41
+  0x08015d76  strb.w   r2, [r0, #0x40]
+  0x08015d7a  strb.w   r2, [r0, #0x3d]
+  0x08015d7e  strb.w   r3, [r0, #0x3e]
+  0x08015d82  movs     r4, #2
+  0x08015d84  strb.w   r4, [r0, #0x41]
+  0x08015d88  strb.w   r3, [r0, #0x42]
+  0x08015d8c  strb.w   r3, [r0, #0x43]
+  0x08015d90  movs     r1, #3
+  0x08015d92  strb.w   r1, [r0, #0x44]
+  0x08015d96  movs     r1, #0xf
+  0x08015d98  strb.w   r1, [r0, #0x45]
+  0x08015d9c  movs     r5, #4
+  0x08015d9e  strb.w   r5, [r0, #0x46]
+  0x08015da2  strb.w   r3, [r0, #0x47]
+  0x08015da6  strb.w   r3, [r0, #0x48]
+
+Field-init of the shared block. Stopped after 20 insns. Not a ctor sweep
+of new RAM bases.
+
+## 4. vs ctor_sweep 0x08014d08
+
+These three are small object inits behind the same gate. They do not
+walk a table of ctors. Slot 4 remains the only init_array entry that
+calls `0x08014d08`.

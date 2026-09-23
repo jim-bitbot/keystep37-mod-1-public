@@ -1,0 +1,68 @@
+STATUS: done
+AGENT: cursor
+TICKET: AX
+UPDATED: 2026-09-23T22:15+01:00
+INPUT: scans/AO-swing-table.txt; firmware bin
+
+# AX-swing-reader — callers of 0x08016ed8 and dest 0x0801312e
+
+## 1. containing start 0x08016ed8
+
+  0x08016ed8  push     {r3, r4, r5, lr}
+  0x08016eda  mov      r4, r1
+  0x08016edc  cmp      r1, #0xf
+  0x08016ede  bgt      #0x8016f32
+
+Thumb ptr 0x08016ed9: 0
+bl callers: 1 → 0x0800cf96  (inside key_scan)
+
+## 2. sole caller 0x0800cf96
+
+  0x0800cf8c  rsb.w    r1, r5, #0x24
+  0x0800cf90  sxtb     r1, r1
+  0x0800cf92  ldr      r3, [pc, #0x184]  ; 0x20001124
+  0x0800cf94  ldr      r0, [r3]
+  0x0800cf96  bl       #0x8016ed8
+
+r1 = 0x24 − r5. r5 is key_scan's per-key index (cmp r5,#0x24 at 0x0800cc8c).
+
+## 3. swing table branch  (r1 > 0xf)
+
+  0x08016f32  mov      r5, r0
+  0x08016f34  cmp      r1, #0x14
+  0x08016f36  ble      #0x8016f6a
+  0x08016f38  cmp      r1, #0x1d
+  0x08016f3a  ble      #0x8016f7c
+
+  0x08016f7c  sub.w    r4, r1, #0x15
+  0x08016f80  ldr      r3, [pc, #0xb0]  ; 0x0801ec64
+  0x08016f82  ldrb     r1, [r3, r4]
+  0x08016f84  ldr      r3, [pc, #0xa8]  ; 0x20001150
+  0x08016f86  ldr      r0, [r3]
+  0x08016f88  bl       #0x801312e
+
+0x15 ≤ r1 ≤ 0x1d  ⇒  r5 in 7..15  (because r1 = 0x24 − r5)
+
+## 4. dest 0x0801312e
+
+  0x0801312e  ldr      r3, [r0]
+  0x08013130  strb.w   r1, [r3, #0x401]
+  0x08013134  ldr      r2, [r0]
+  0x08013136  ldrb.w   r3, [r2, #0x403]
+  0x0801313a  orr      r3, r3, #2
+  0x0801313e  strb.w   r3, [r2, #0x403]
+  0x08013142  bx       lr
+
+r0 = *0x20001150. Writes slot header +0x401 (catalog: Swing).
+
+Other bl 0x0801312e: 0x080116a0  (r1=#0x32, not the table)
+
+  0x08011692  ldr      r4, [pc, #0x14]  ; 0x20001150
+  0x08011694  movs     r1, #0x32
+  0x08011696  ldr      r0, [r4]
+  0x08011698  bl       #0x8013118
+  0x0801169c  movs     r1, #0x32
+  0x0801169e  ldr      r0, [r4]
+  0x080116a0  bl       #0x801312e
+
+STATUS: done

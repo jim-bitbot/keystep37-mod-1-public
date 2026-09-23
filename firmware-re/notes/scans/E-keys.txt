@@ -1,0 +1,152 @@
+STATUS: done
+AGENT: cursor
+TICKET: E
+UPDATED: 2026-09-23T19:18+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; scan_firmware.py bl-to 0x0801b750
+
+# E-keys — callers of 0x0801b750 and the r2 each one passes
+# Image: keystep37_1.1.6.579_flash.bin  BASE=0x08000000
+# Capstone Thumb. noteval 0x0801c3ca not walked.
+
+## 1. bl-to 0x0801b750
+
+4 hits. No others.
+
+  01  0x0800cdfa  bl 0x0801b750
+  02  0x0800cf30  bl 0x0801b750
+  03  0x0800d064  bl 0x0801b750
+  04  0x08010326  bl 0x0801b750
+
+Pushes: `0x0800cc48` (key_scan) then next push `0x0800d152`.
+Sites 01–03 sit between those two pushes.
+Site 04 sits after push `0x0800fa64`. That start has no catalog name.
+containing fn not named.
+
+## 2. Callers (r2 set in the window)
+
+### 01  0x0800cdfa   inside key_scan 0x0800cc48
+
+  0x0800cdca  5433        adds     r3, #0x54
+  0x0800cdcc  684a        ldr      r2, [pc, #0x1a0]
+  0x0800cdce  1078        ldrb     r0, [r2]
+  0x0800cdd0  00f00f02    and      r2, r0, #0xf
+  0x0800cdd4  42f09002    orr      r2, r2, #0x90
+  0x0800cdd8  8df80820    strb.w   r2, [sp, #8]
+  0x0800cddc  8df80930    strb.w   r3, [sp, #9]
+  0x0800cde0  8df80a80    strb.w   r8, [sp, #0xa]
+  0x0800cde4  0022        movs     r2, #0
+  0x0800cde6  8df80b20    strb.w   r2, [sp, #0xb]
+  0x0800cdea  0299        ldr      r1, [sp, #8]
+  0x0800cdec  0391        str      r1, [sp, #0xc]
+  0x0800cdee  0191        str      r1, [sp, #4]
+  0x0800cdf0  0091        str      r1, [sp]
+  0x0800cdf2  89f84301    strb.w   r0, [sb, #0x143]
+  0x0800cdf6  1346        mov      r3, r2
+  0x0800cdf8  5e48        ldr      r0, [pc, #0x178]
+  0x0800cdfa  0ef0a9fc    bl       #0x0801b750
+r2 = 0
+
+### 02  0x0800cf30   inside key_scan 0x0800cc48
+
+  0x0800cf00  5433        adds     r3, #0x54
+  0x0800cf02  1b4a        ldr      r2, [pc, #0x6c]
+  0x0800cf04  1078        ldrb     r0, [r2]
+  0x0800cf06  00f00f02    and      r2, r0, #0xf
+  0x0800cf0a  42f09002    orr      r2, r2, #0x90
+  0x0800cf0e  8df81420    strb.w   r2, [sp, #0x14]
+  0x0800cf12  8df81530    strb.w   r3, [sp, #0x15]
+  0x0800cf16  8df81680    strb.w   r8, [sp, #0x16]
+  0x0800cf1a  0022        movs     r2, #0
+  0x0800cf1c  8df81720    strb.w   r2, [sp, #0x17]
+  0x0800cf20  0599        ldr      r1, [sp, #0x14]
+  0x0800cf22  0691        str      r1, [sp, #0x18]
+  0x0800cf24  0491        str      r1, [sp, #0x10]
+  0x0800cf26  0091        str      r1, [sp]
+  0x0800cf28  8bf84301    strb.w   r0, [fp, #0x143]
+  0x0800cf2c  1346        mov      r3, r2
+  0x0800cf2e  1148        ldr      r0, [pc, #0x44]
+  0x0800cf30  0ef00efc    bl       #0x0801b750
+r2 = 0
+
+### 03  0x0800d064   inside key_scan 0x0800cc48
+
+  0x0800d034  8c7a        ldrb     r4, [r1, #0xa]
+  0x0800d036  4ffa85f8    sxtb.w   r8, r5
+  0x0800d03a  b8f1000f    cmp.w    r8, #0
+  0x0800d03e  3ddb        blt      #0x0800d0bc
+  0x0800d040  c8f34718    ubfx     r8, r8, #5, #8
+  0x0800d044  5af82830    ldr.w    r3, [sl, r8, lsl #2]
+  0x0800d048  05f01f02    and      r2, r5, #0x1f
+  0x0800d04c  4ff00109    mov.w    sb, #1
+  0x0800d050  09fa02f9    lsl.w    sb, sb, r2
+  0x0800d054  13ea090f    tst.w    r3, sb
+  0x0800d058  14bf        ite      ne
+  0x0800d05a  0123        movne    r3, #1
+  0x0800d05c  0023        moveq    r3, #0
+  0x0800d05e  0022        movs     r2, #0
+  0x0800d060  0099        ldr      r1, [sp]
+  0x0800d062  3348        ldr      r0, [pc, #0xcc]
+  0x0800d064  0ef074fb    bl       #0x0801b750
+r2 = 0
+
+### 04  0x08010326   containing fn not named
+
+Previous push is `0x0800fa64`. No name in the catalog or recreate.py.
+
+  0x080102f6  e013        asrs     r0, r4, #0xf
+  0x080102f8  2846        mov      r0, r5
+  0x080102fa  fff771fe    bl       #0x0800ffe0
+  0x080102fe  02e0        b        #0x08010306
+  0x08010300  ff20        movs     r0, #0xff
+  0x08010302  05f0c7ff    bl       #0x08016294
+  0x08010306  0121        movs     r1, #1
+  0x08010308  d4f8e003    ldr.w    r0, [r4, #0x3e0]
+  0x0801030c  05f0ccfe    bl       #0x080160a8
+  0x08010310  2e78        ldrb     r6, [r5]
+  0x08010312  06f00f06    and      r6, r6, #0xf
+  0x08010316  7e28        cmp      r0, #0x7e
+  0x08010318  01d0        beq      #0x0801031e
+  0x0801031a  b042        cmp      r0, r6
+  0x0801031c  43d1        bne      #0x080103a6
+  0x0801031e  0023        movs     r3, #0
+  0x08010320  0122        movs     r2, #1
+  0x08010322  2968        ldr      r1, [r5]
+  0x08010324  8848        ldr      r0, [pc, #0x220]
+  0x08010326  0bf013fa    bl       #0x0801b750
+r2 = 1
+
+## 3. Entry 0x0801b750  (20 insns)
+
+Incoming r2 is copied to sb. No later read of sb inside these 20.
+
+  0x0801b750  2de9f04f    push.w   {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+  0x0801b754  afb0        sub      sp, #0xbc
+  0x0801b756  0646        mov      r6, r0
+  0x0801b758  0191        str      r1, [sp, #4]
+  0x0801b75a  9146        mov      sb, r2          ; first use of incoming r2
+  0x0801b75c  1c46        mov      r4, r3
+  0x0801b75e  051d        adds     r5, r0, #4
+  0x0801b760  2846        mov      r0, r5
+  0x0801b762  00f07dfe    bl       #0x0801c460
+  0x0801b766  8246        mov      sl, r0
+  0x0801b768  0199        ldr      r1, [sp, #4]
+  0x0801b76a  2846        mov      r0, r5
+  0x0801b76c  00f0adfe    bl       #0x0801c4ca
+  0x0801b770  2846        mov      r0, r5
+  0x0801b772  00f075fe    bl       #0x0801c460
+  0x0801b776  0746        mov      r7, r0
+  0x0801b778  ba4b        ldr      r3, [pc, #0x2e8]
+  0x0801b77a  1868        ldr      r0, [r3]
+  0x0801b77c  c37b        ldrb     r3, [r0, #0xf]
+  0x0801b77e  012b        cmp      r3, #1
+
+First later read of that saved r2 (sb), outside the 20:
+
+  0x0801b8b2  lsl.w    r2, r2, sb
+
+## 4. Twelve insns above the key_scan calls
+
+Already inside §2. The twelve immediately above each bl:
+
+01 above `0x0800cdfa`: `0x0800cdd4` through `0x0800cdf8` (orr #0x90 … ldr r0).
+02 above `0x0800cf30`: `0x0800cf0a` through `0x0800cf2e` (orr #0x90 … ldr r0).

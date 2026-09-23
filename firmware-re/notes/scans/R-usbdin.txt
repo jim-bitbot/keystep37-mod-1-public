@@ -1,0 +1,119 @@
+STATUS: done
+AGENT: cursor
+TICKET: R
+UPDATED: 2026-09-23T21:30+01:00
+INPUT: firmware-re/firmware-images/keystep37_1.1.6.579_flash.bin; scans/A-boot.txt; scans/J-voice.txt; model/lead-usb-din.md (read-only)
+
+# R-usbdin — what fills port-switch slots
+# USB stack body and 0x08009662 not walked.
+# USART1 0x40013800 and USB 0x40005C00: not in emit_key, emit_seq, or one
+# static bl down from the four sweep thunks.
+
+## 1. Ctor chain (only static callers)
+
+0x0801acb0  callers: 0x08014f54
+0x0801b02c  callers: 0x08014f64
+0x0801b572  callers: 0x08014f6c
+
+Sweep 0x08014f12–0x08014f6c:
+
+  0x08014f12  ldr      r6, [pc]          ; 0x20001d5c
+  0x08014f14  ldr      r3, [pc]          ; 0x200000c0
+  0x08014f16  str      r3, [r6]
+  0x08014f2e  ldr.w    sb, [pc]          ; 0x20001d60
+  0x08014f4c  mov      r3, r6
+  0x08014f50  ldm      r2, {r1, r2}      ; r2 was sp+0x28 → r1=0x20001d5c, r2=0x08014b7d
+  0x08014f52  mov      r0, sb
+  0x08014f54  bl       #0x0801acb0       ; r0=0x20001d60
+  0x08014f5a  ldr.w    r8, [pc]          ; 0x20001e04
+  0x08014f60  mov      r1, sb            ; r1=0x20001d60
+  0x08014f62  mov      r0, r8
+  0x08014f64  bl       #0x0801b02c       ; r0=0x20001e04
+  0x08014f68  mov      r1, r8            ; r1=0x20001e04
+  0x08014f6a  ldr      r0, [pc]          ; 0x20001eb8
+  0x08014f6c  bl       #0x0801b572
+
+0x0801b572 stores that r1 at [r0]:
+
+  0x0801b576  mov      r6, r1
+  0x0801b590  str      r6, [r4]          ; *0x20001eb8 = 0x20001e04
+
+0x0801b02c stores its r1 at [r0] at the end:
+
+  0x0801b032  mov      r5, r1
+  0x0801b0c8  str      r5, [r4]          ; *0x20001e04 = 0x20001d60
+
+## 2. 0x20001d60 ctor copies six words from the sweep args
+
+  0x0801acb0  sub      sp, #8
+  0x0801acb2  push     {r4, r5}
+  0x0801acb6  mov      r4, r0
+  0x0801acc6  stm.w    r4, {r0, r2}      ; +0, +4
+  0x0801acca  add.w    r3, r4, #8
+  0x0801acd2  stm.w    r3, {r0, r1}      ; +8, +0xc
+  0x0801acd6  add.w    r3, r4, #0x10
+  0x0801ace0  stm.w    r3, {r0, r1}      ; +0x10, +0x14
+
+Incoming r2 at the bl is 0x08014b7d. Other pairs on the stack before
+the bl (sl is 0x200013fc from 0x08014d4a):
+
+  0x08014f1e  str.w    sl, [sp, #0x38]   ; 0x200013fc
+  0x08014f24  str      r3, [sp, #0x3c]   ; 0x08014b6d
+  0x08014f26  str.w    r8, [sp, #0x40]   ; r8 still 0x20002bec from 0x08014ed8
+  0x08014f2c  str      r3, [sp, #0x44]   ; 0x08014b75
+  0x08014f4a  str      r3, [sp]          ; 0x08014bb1
+
+## 3. Those Thumb addresses
+
+  0x08014b6c  push {r3, lr}
+  0x08014b6e  bl   #0x0800d77c          ; loads [r0,#0x950]; 0x200051cc+0xb9
+  0x08014b72  pop  {r3, pc}
+
+  0x08014b74  push {r3, lr}
+  0x08014b76  bl   #0x08011e08          ; ldrb r0, [r0, #4]; bx lr
+  0x08014b7a  pop  {r3, pc}
+
+  0x08014b7c  push {r4, lr}
+  0x08014b84  ldr  r3, [pc]             ; 0x20000214
+  0x08014b90  bl   #0x08010c10
+  (else alloc via 0x0801d862 / 0x08010b30, store back to 0x20000214)
+
+  0x08014bb0  push {r4, r5, lr}
+  0x08014bba  ldr  r3, [pc]             ; 0x20000214
+  0x08014bca  bl   #0x08010c98
+
+0x0800d77c / 0x08011e08 / 0x08010c10 / 0x08010c98 / 0x08010b30: no
+pc-rel of 0x40013800 or 0x40005C00 in the first 0x120 bytes.
+
+## 4. port_switch 0x0801b384
+
+  0x0801b384  push     {r4, r5, r6, r7, lr}
+  0x0801b388  mov      r7, r0
+  0x0801b396  adds     r0, #0x30
+  0x0801b398  bl       #0x0801c58c
+  0x0801b3a8  cmp      r4, #1            ; r4 is incoming r3
+  0x0801b3ac  cbz      r4, #0x0801b3b6
+  0x0801b3ae  cmp      r4, #2
+  0x0801b3b6  ldr      r0, [r7]          ; r3==0 → 0x0801ad20
+  0x0801b3c6  ldr      r0, [r7]          ; r3==1 → 0x0801ae56
+  0x0801b3d4  ldr      r0, [r7]          ; r3==2 → 0x0801ad20, r2|=0x10
+
+Incoming r0 is 0x20001e04 (from *0x20001eb8). [r7] is 0x20001d60.
+emit_key / emit_seq then blx [that object +4 / +0x14 / +0xc].
+
+No static bl from 0x0801ad20 or 0x0801ae56. No USART/USB literal in
+those two function windows.
+
+## 5. Key-path r0
+
+0x0801b750: mov r6, r0. At 0x0801b97c: ldr r0, [r6]; movs r3, #0;
+bl 0x0801b384.
+
+All four bls to 0x0801b750 pass r0=0x20001eb8:
+
+  0x0800cdf8  ldr r0, [pc] ; 0x20001eb8
+  0x0800cf2e  ldr r0, [pc] ; 0x20001eb8
+  0x0800d062  ldr r0, [pc] ; 0x20001eb8
+  0x08010324  ldr r0, [pc] ; 0x20001eb8
+
+Same object as the six play_time_step bls to 0x0801b6c4.
